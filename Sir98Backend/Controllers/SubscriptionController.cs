@@ -7,7 +7,7 @@ using WebPush;
 namespace Sir98Backend.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Microsoft.AspNetCore.Mvc.Route("api/[controller]")]
     public class SubscriptionController : Controller
     {
         public static class TestSubscriptionStore
