@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Mvc;
 using Sir98Backend.Models;
 using WebPush;
 
@@ -18,8 +19,8 @@ namespace Sir98Backend.Controllers
         private readonly VapidConfig _vapidConfig = new VapidConfig
         {
             Subject = "mailto:you@example.com",
-            PublicKey = "BDVzVxg_Qd8OqCOHLmA4EAxxF_FQ8qAAv-jYmWSfxofkIWe69EZgJFl2lk-U18kbE6s-Jp9j7v-VrT8eEQDTarQ",
-            PrivateKey = "YxDoIeaf7SapX-Ye2qFOPpsNU9A0cxmmdz0vCtWvGxg"
+            PublicKey = "BDVzVxg_Qd8OqCOHLmA4EAxxF_FQ8qAAv-jYmWSfxofkIWe69EZgJFl2lk-U18kbE6s-Jp9j7v-VrT8eEQDTarQ", //you may look here, but dont look below
+            PrivateKey = "YxDoIeaf7SapX-Ye2qFOPpsNU9A0cxmmdz0vCtWvGxg" //dont look, avert your eyes
         };
 
         [HttpGet("generate-vapid")]
