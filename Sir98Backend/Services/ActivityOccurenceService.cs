@@ -2,8 +2,8 @@
 using Ical.Net.CalendarComponents;
 using Ical.Net.DataTypes;
 using Ical.Net.Evaluation;
-using Sir98Backend.Dtos;
 using Sir98Backend.Models;
+using Sir98Backend.Models.DataTransferObjects;
 using Sir98Backend.Repository;
 
 namespace Sir98Backend.Services

@@ -1,6 +1,6 @@
 ﻿using Sir98Backend.Models;
 
-namespace Sir98Backend.Dtos
+namespace Sir98Backend.Models.DataTransferObjects
 {
     public class ActivityOccurrenceDto
     {

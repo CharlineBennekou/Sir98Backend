@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Mvc;
-using Sir98Backend.Dtos;
 using Sir98Backend.Models;
+using Sir98Backend.Models.DataTransferObjects;
 using WebPush;
 
 

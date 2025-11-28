@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Sir98Backend.Dtos;
+using Sir98Backend.Models.DataTransferObjects;
 using Sir98Backend.Services;
 
 namespace Sir98Backend.Controllers
