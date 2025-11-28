@@ -24,7 +24,10 @@ namespace Sir98Backend.Controllers
             [FromQuery] DateTimeOffset? from = null, //Defaults to now if not provided
             [FromQuery] int days = 7) //Defaults to 7 days if not provided
         {
-            if (days <= 0) days = 7; //Cant be less than 0
+            if (days <= 0)
+            {
+                return BadRequest("You must go at least 1 day forward");
+            }
 
             if (from.HasValue && from.Value.Offset != TimeSpan.Zero)
             {
