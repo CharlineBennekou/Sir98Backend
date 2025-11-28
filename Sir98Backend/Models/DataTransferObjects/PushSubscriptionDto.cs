@@ -1,4 +1,4 @@
-﻿namespace Sir98Backend.Models
+﻿namespace Sir98Backend.Models.DataTransferObjects
 {
     public class PushSubscriptionDto
     {
