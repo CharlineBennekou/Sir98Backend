@@ -8,6 +8,9 @@ namespace Sir98Backend.Repository
         private List<Activity> _activity = new();
         private int _nextId = 1;
 
+        private static readonly TimeZoneInfo DanishTimeZone =
+            TimeZoneInfo.FindSystemTimeZoneById("Europe/Copenhagen");
+
 
 
         public ActivityRepo()
@@ -31,46 +34,129 @@ namespace Sir98Backend.Repository
                 Image = "bob.jpg"
             };
 
+            DateTimeOffset DkLocal(int year, int month, int day, int hour, int minute) //Will be deleted once we no longer use mockdata
+            {
+                var local = new DateTime(year, month, day, hour, minute, 0, DateTimeKind.Unspecified);
+                var utc = TimeZoneInfo.ConvertTimeToUtc(local, DanishTimeZone);
+                return new DateTimeOffset(utc, TimeSpan.Zero);
+            }
+
+
 
 
             _activity = new List<Activity>();
-            _activity.Add(new Activity
+            // --- Badminton – Wednesday 16:30–18:00 DK time ---
+            Add(new Activity
             {
-                Id = _nextId++,
                 Title = "Badminton",
-                Start = DateTime.Now,
-                End = DateTime.Now.AddHours(2),
-                Address = "Rosevej 8",
-                Image = "billede.png",
-                Link = "www.y8",
+                StartUtc = DkLocal(2025, 12, 3, 16, 30),
+                EndUtc = DkLocal(2025, 12, 3, 18, 00),
+                Address = "Hedegårdene Skole, Københavnsvej 34, 4000 Roskilde",
+                Image = "badminton.png",
+                Link = "https://if-sir98.dk/#badminton",
                 Cancelled = false,
-                Instructors = new List<Instructor> { instructor1 }
+                Description = "Badmintontræning for alle niveauer.",
+                IsRecurring = true,
+                Tags = new List<string> { "Træning", "Cirkeltræning" },
+                Rrule = "FREQ=WEEKLY;BYDAY=WE"
             });
 
-            _activity.Add(new Activity
+            // --- Cirkeltræning – Wednesday 14:15–15:00 DK time ---
+            Add(new Activity
             {
-                Id = _nextId++,
-                Title = "Fodbold",
-                Start = DateTime.Now,
-                End = DateTime.Now.AddHours(3),
-                Address = "Blomstergade 5",
-                Image = "billede2.png",
-                Link = "www.y9",
-                Cancelled = false
+                Title = "Cirkeltræning",
+                StartUtc = DkLocal(2025, 12, 3, 14, 15),
+                EndUtc = DkLocal(2025, 12, 3, 15, 00),
+                Address = "RMI, Store Møllevej 5, 4000 Roskilde",
+                Image = "cirkeltraening.png",
+                Link = "https://if-sir98.dk/#cirkeltr%C3%A6ning",
+                Cancelled = false,
+                Instructors = new List<Instructor> { instructor1, instructor2 },
+                Description = "Cirkeltræning med fokus på hele kroppen.",
+                Tags = new List<string> { "Træning", "Cirkeltræning" },
+                IsRecurring = true,
+                Rrule = "FREQ=WEEKLY;BYDAY=WE"
+            });
+            // --- Cirkeltræning – Friday 10:15–11:00 DK time ---
+            Add(new Activity
+            {
+                Title = "Cirkeltræning",
+                StartUtc = DkLocal(2025, 12, 5, 10, 15),
+                EndUtc = DkLocal(2025, 12, 5, 11, 00),
+                Address = "RMI, Store Møllevej 5, 4000 Roskilde",
+                Image = "cirkeltraening.png",
+                Link = "https://if-sir98.dk/#cirkeltr%C3%A6ning",
+                Cancelled = false,
+                Instructors = new List<Instructor> { instructor2 },
+                Description = "Formiddags-cirkeltræning.",
+                Tags = new List<string> { "Træning", "Cirkeltræning" },
+                IsRecurring = true,
+                Rrule = "FREQ=WEEKLY;BYDAY=FR"
             });
 
-            _activity.Add(new Activity
+            // --- Styrke og sundhedstræning – Monday 14:30–16:00 DK time ---
+            Add(new Activity
             {
-                Id = _nextId++,
-                Title = "Svømning",
-                Start = DateTime.Now,
-                End = DateTime.Now.AddHours(1),
-                Address = "Løvevej 3",
-                Image = "billede3.png",
-                Link = "www.y10",
-                Cancelled = true,
-                Instructors = new List<Instructor> { instructor2, instructor1 }
+                Title = "Styrke og sundhedstræning",
+                StartUtc = DkLocal(2025, 12, 1, 14, 30),
+                EndUtc = DkLocal(2025, 12, 1, 16, 00),
+                Address = "RMI, Store Møllevej 5, 4000 Roskilde",
+                Image = "styrke.png",
+                Link = "https://if-sir98.dk/#styrke-og-sundhedstr%C3%A6ning",
+                Cancelled = false,
+                Description = "Åbent i træningscenteret. Ingen instruktør.",
+                Tags = new List<string> { "Træning" },
+                IsRecurring = true,
+                Rrule = "FREQ=WEEKLY;BYDAY=MO"
             });
+
+            // --- Styrke og sundhedstræning – Wednesday 14:00–16:00 DK time ---
+            Add(new Activity
+            {
+                Title = "Styrke og sundhedstræning",
+                StartUtc = DkLocal(2025, 12, 3, 14, 00),
+                EndUtc = DkLocal(2025, 12, 3, 16, 00),
+                Address = "RMI, Store Møllevej 5, 4000 Roskilde",
+                Image = "styrke.png",
+                Link = "https://if-sir98.dk/#styrke-og-sundhedstr%C3%A6ning",
+                Cancelled = false,
+                Description = "Åbent i træningscenteret. Ingen instruktør.",
+                Tags = new List<string> { "Træning" },
+                IsRecurring = true,
+                Rrule = "FREQ=WEEKLY;BYDAY=WE"
+            });
+
+            // --- Styrke og sundhedstræning – Friday 10:00–12:00 DK time ---
+            Add(new Activity
+            {
+                Title = "Styrke og sundhedstræning",
+                StartUtc = DkLocal(2025, 12, 5, 10, 00),
+                EndUtc = DkLocal(2025, 12, 5, 12, 00),
+                Address = "RMI, Store Møllevej 5, 4000 Roskilde",
+                Image = "styrke.png",
+                Link = "https://if-sir98.dk/#styrke-og-sundhedstr%C3%A6ning",
+                Cancelled = false,
+                Description = "Åbent i træningscenteret. Ingen instruktør.",
+                Tags = new List<string> { "Træning" },
+                IsRecurring = true,
+                Rrule = "FREQ=WEEKLY;BYDAY=FR"
+            });
+
+            Add(new Activity
+            {
+                Title = "BrugerTests",
+                StartUtc = DkLocal(2025, 12, 3, 14, 15),
+                EndUtc = DkLocal(2025, 12, 3, 15, 00),
+                Address = "RMI, Store Møllevej 5, 4000 Roskilde",
+                Image = "tests.png",
+                Link = "https://if-sir98.dk/#styrke-og-sundhedstr%C3%A6ning",
+                Cancelled = false,
+                Description = "Åbent i træningscenteret. Ingen instruktør.",
+                Tags = new List<string> { "Træning" },
+                IsRecurring = false,
+                
+            });
+
         }
 
         public List<Activity> GetAll()
@@ -109,12 +195,17 @@ namespace Sir98Backend.Repository
                 return null;
             }
             existingActivity.Title = activity.Title;
-            existingActivity.Start = activity.Start;
-            existingActivity.End = activity.End;
+            existingActivity.StartUtc = activity.StartUtc;
+            existingActivity.EndUtc = activity.EndUtc;
             existingActivity.Address = activity.Address;
             existingActivity.Image = activity.Image;
             existingActivity.Link = activity.Link;
             existingActivity.Cancelled = activity.Cancelled;
+            existingActivity.Description = activity.Description;
+            existingActivity.Instructors = activity.Instructors;
+            existingActivity.Tags = activity.Tags;
+            existingActivity.IsRecurring = activity.IsRecurring;
+            existingActivity.Rrule = activity.Rrule;
             return existingActivity;
         }
     }

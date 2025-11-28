@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Mvc;
 using Sir98Backend.Models;
+using Sir98Backend.Models.DataTransferObjects;
 using WebPush;
 
 
@@ -87,7 +88,7 @@ namespace Sir98Backend.Controllers
 
             foreach (var sub in TestSubscriptionStore.Subscriptions.ToList())
             {
-                var pushSubscription = new PushSubscription(
+                var pushSubscription = new WebPush.PushSubscription(
                     sub.Endpoint,
                     sub.P256dh,
                     sub.Auth);

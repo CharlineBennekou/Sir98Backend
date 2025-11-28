@@ -5,6 +5,7 @@ using Microsoft.IdentityModel.Tokens;
 using Sir98Backend.Repository;
 using System.Text;
 using System.Threading.RateLimiting;
+using Sir98Backend.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,6 +17,11 @@ builder.Services.AddSingleton<ActivityRepo>(new ActivityRepo());
 
 builder.Services.AddSingleton<InstructorRepo>(new InstructorRepo());
 builder.Services.AddSingleton<UserRepo>();
+
+builder.Services.AddSingleton<ChangedActivityRepo>();
+
+builder.Services.AddSingleton<ActivityOccurrenceService>();
+
 
 builder.Services.AddCors(options => //allow all for testing
 {

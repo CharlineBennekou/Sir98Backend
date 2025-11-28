@@ -9,6 +9,7 @@
   <ItemGroup>
     <PackageReference Include="Isopoh.Cryptography.Argon2" Version="2.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.22" />
+	  <PackageReference Include="Ical.Net" Version="5.1.2" />
     <PackageReference Include="WebPush" Version="1.0.12" />
   </ItemGroup>
 
