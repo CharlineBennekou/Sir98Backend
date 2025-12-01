@@ -34,8 +34,8 @@ builder.Services.AddCors(options => //allow all for testing
     });
 });
 
-string filepath = Environment.CurrentDirectory + "\\Keys\\JWToken key for signing.txt";
-string keyForSigning = System.IO.File.ReadAllText(filepath);
+var keyForSigning = builder.Configuration["JwtSettings:SigningKey"];
+
 builder.Services.AddAuthentication(x =>
 {
     x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -91,9 +91,13 @@ builder.Services.AddRateLimiter(options =>
     };
 });
 
+
+builder.Services.AddSwaggerGen();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
+app.UseSwagger();
+app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
 
