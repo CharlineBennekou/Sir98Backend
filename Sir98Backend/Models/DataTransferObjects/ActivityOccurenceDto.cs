@@ -31,6 +31,8 @@ namespace Sir98Backend.Models.DataTransferObjects
         public List<string>? Tags { get; set; } = new(); // Default to empty list to avoid null issues in frontend
 
         public bool Cancelled { get; set; }
+
+        public bool isSubscribed { get; set; }
     }
 
 }

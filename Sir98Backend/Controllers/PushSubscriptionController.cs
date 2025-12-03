@@ -9,7 +9,7 @@ namespace Sir98Backend.Controllers
 {
     [ApiController]
     [Microsoft.AspNetCore.Mvc.Route("api/[controller]")]
-    public class SubscriptionController : Controller
+    public class PushSubscriptionController : Controller
     {
         public static class TestSubscriptionStore
         {

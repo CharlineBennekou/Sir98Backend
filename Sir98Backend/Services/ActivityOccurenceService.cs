@@ -2,6 +2,8 @@
 using Ical.Net.CalendarComponents;
 using Ical.Net.DataTypes;
 using Ical.Net.Evaluation;
+using Microsoft.AspNetCore.Components;
+using Org.BouncyCastle.Bcpg;
 using Sir98Backend.Models;
 using Sir98Backend.Models.DataTransferObjects;
 using Sir98Backend.Repository;
@@ -12,16 +14,18 @@ namespace Sir98Backend.Services
     {
         private readonly ActivityRepo _activityRepo;
         private readonly ChangedActivityRepo _changedActivityRepo;
+        private readonly ActivitySubscriptionRepo _activitySubsRepo;
 
         private static readonly TimeZoneInfo DanishZone =
             TimeZoneInfo.FindSystemTimeZoneById("Europe/Copenhagen");
 
         private const string DanishTzId = "Europe/Copenhagen";
 
-        public ActivityOccurrenceService(ActivityRepo activityRepo, ChangedActivityRepo changedActivityRepo)
+        public ActivityOccurrenceService(ActivityRepo activityRepo, ChangedActivityRepo changedActivityRepo, ActivitySubscriptionRepo activitySubRepo)
         {
             _activityRepo = activityRepo;
             _changedActivityRepo = changedActivityRepo;
+            _activitySubsRepo = activitySubRepo;
         }
         /// <summary>
         /// Gets all Activities and their recurrences from a specific date and x amount of days forward.
@@ -30,11 +34,37 @@ namespace Sir98Backend.Services
         /// <param name="fromUtc"></param> StartTime in UTC. Used so we can "get the next page" starting from right after the last StartTime shown
         /// <param name="days"></param> Amount of days forward we will get. For example 7 days forward means we will get from StartTime until 7 days later
         /// <returns></returns>
-        public IEnumerable<ActivityOccurrenceDto> GetOccurrences(DateTimeOffset fromUtc, int days)
+        public IEnumerable<ActivityOccurrenceDto> GetOccurrences(DateTimeOffset fromUtc, int days, string filter, string userId)
         {
             var toUtc = fromUtc.AddDays(days); //Calculates the EndDate based on how many days from the parameter
 
-            var activities = _activityRepo.GetAll();
+            var activities = _activityRepo.GetAll(); //Gets all activities from repo
+
+            
+
+
+            if (filter != null) //If filter parameter is provided, we filter activities based on tags containing the filter string. We do it before processing occurrences to reduce workload
+            {
+                var lowerFilter = filter.ToLowerInvariant();
+                activities = activities.Where(a =>
+                    (a.Tags != null && a.Tags.Any(tag => tag.ToLowerInvariant().Contains(lowerFilter)))
+                ).ToList();
+            }
+
+            if (userId !=null) //If userId parameter is provided, we filter activities based on subscriptions. Later, we will set the isSubscribed flag in the Dto to be true.
+            {                 var subscribedActivityIds = _activitySubsRepo.GetByUserId(userId)
+                    .Select(s => s.ActivityId)
+                    .ToHashSet();
+                activities = activities
+                    .Where(a => subscribedActivityIds.Contains(a.Id))
+                    .ToList();
+            }
+
+            bool isSubscribed = userId != null; //If UserId is provided, we consider the user subscribed to all activities returned because of the filtering above. This flag will be set in the Dto.
+
+
+
+
             var changes = _changedActivityRepo.GetAll();
 
             // (ActivityId, OriginalStartUtc) -> ChangedActivity
@@ -51,7 +81,7 @@ namespace Sir98Backend.Services
                     // Single event
                     if (activity.StartUtc >= fromUtc && activity.StartUtc < toUtc) //If the activity's Start is within the range from parameters, run it through helper method
                     {
-                        AddOccurrence(activity, activity.StartUtc, activity.EndUtc, changeLookup, result);
+                        AddOccurrence(activity, activity.StartUtc, activity.EndUtc, changeLookup, result, isSubscribed);
                     }
 
                     continue;
@@ -66,7 +96,7 @@ namespace Sir98Backend.Services
                 foreach (var (originalStartUtc, originalEndUtc) in
                          GenerateBaseOccurrences(activity, fromUtc, toUtc))
                 {
-                    AddOccurrence(activity, originalStartUtc, originalEndUtc, changeLookup, result);
+                    AddOccurrence(activity, originalStartUtc, originalEndUtc, changeLookup, result, isSubscribed);
                 }
             }
 
@@ -123,7 +153,8 @@ namespace Sir98Backend.Services
             DateTimeOffset originalStartUtc,
             DateTimeOffset originalEndUtc,
             Dictionary<(int ActivityId, DateTimeOffset OriginalStartUtc), ChangedActivity> changeLookup,
-            List<ActivityOccurrenceDto> result)
+            List<ActivityOccurrenceDto> result,
+            bool isSubscribed)
         {
             if (changeLookup.TryGetValue((activity.Id, originalStartUtc), out var change))
             {
@@ -137,8 +168,6 @@ namespace Sir98Backend.Services
                 var instructors = change.NewInstructors ?? activity.Instructors;
                 var tags = change.NewTags ?? activity.Tags;
 
-                // Cancelled if either the parent activity is cancelled, or this specific instance is
-                var cancelled = activity.Cancelled || change.IsCancelled;
 
                 result.Add(new ActivityOccurrenceDto
                 {
@@ -153,7 +182,8 @@ namespace Sir98Backend.Services
                     Link = activity.Link,
                     Instructors = instructors,
                     Tags = tags ?? new List<string>(),
-                    Cancelled = cancelled
+                    Cancelled = change.IsCancelled,
+                    isSubscribed = isSubscribed
                 });
             }
             else
@@ -172,6 +202,7 @@ namespace Sir98Backend.Services
                     Link = activity.Link,
                     Instructors = activity.Instructors,
                     Tags = activity.Tags ?? new List<string>(),
+                    isSubscribed = isSubscribed,
                     Cancelled = activity.Cancelled
                 });
             }
