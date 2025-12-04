@@ -36,6 +36,11 @@ namespace Sir98Backend.Controllers
                 return BadRequest("The 'from' parameter must be sent in UTC (offset +00:00). Example: 2026-03-03T17:00:00Z");
             }
 
+            if(filter == "mine" && userId==null) //If you aren't logged in, you cant filter by mine. Frontend should prevent this, but just in case, we will clear filter
+            {
+                filter = null;
+            }
+
             var fromUtc = (from ?? DateTimeOffset.UtcNow).ToUniversalTime();
 
             var occurrences = _service.GetOccurrences(fromUtc, days, filter, userId);

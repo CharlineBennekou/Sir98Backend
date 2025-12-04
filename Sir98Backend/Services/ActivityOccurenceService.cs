@@ -4,6 +4,7 @@ using Ical.Net.DataTypes;
 using Ical.Net.Evaluation;
 using Microsoft.AspNetCore.Components;
 using Org.BouncyCastle.Bcpg;
+using Org.BouncyCastle.Security;
 using Sir98Backend.Models;
 using Sir98Backend.Models.DataTransferObjects;
 using Sir98Backend.Repository;
@@ -40,27 +41,42 @@ namespace Sir98Backend.Services
 
             var activities = _activityRepo.GetAll(); //Gets all activities from repo
 
-            
+            bool filteredByMine = false;
 
+            //if (filter != null)
+            //{
+            //    (activities, filteredByMine) = ApplyFilters(activities, filter, userId);
+            //}
 
-            if (filter != null) //If filter parameter is provided, we filter activities based on tags containing the filter string. We do it before processing occurrences to reduce workload
+            if (!string.IsNullOrWhiteSpace(filter))
             {
-                var lowerFilter = filter.ToLowerInvariant();
-                activities = activities.Where(a =>
-                    (a.Tags != null && a.Tags.Any(tag => tag.ToLowerInvariant().Contains(lowerFilter)))
-                ).ToList();
-            }
+                string normalizedFilter = filter.Trim().ToLower();
 
-            if (userId !=null) //If userId parameter is provided, we filter activities based on subscriptions. Later, we will set the isSubscribed flag in the Dto to be true.
-            {                 var subscribedActivityIds = _activitySubsRepo.GetByUserId(userId)
-                    .Select(s => s.ActivityId)
-                    .ToHashSet();
-                activities = activities
-                    .Where(a => subscribedActivityIds.Contains(a.Id))
-                    .ToList();
-            }
+                // if filter is "mine" and userId is provided, return only subscribed activities
+                if (normalizedFilter == "mine" && userId != null)
+                {
+                    filteredByMine = true;
 
-            bool isSubscribed = userId != null; //If UserId is provided, we consider the user subscribed to all activities returned because of the filtering above. This flag will be set in the Dto.
+                    var subscribedActivityIds = _activitySubsRepo.GetByUserId(userId)
+                        .Select(s => s.ActivityId)
+                        .ToHashSet();
+
+                    activities = activities
+                        .Where(a => subscribedActivityIds.Contains(a.Id))
+                        .ToList();
+                }
+                else
+                {
+                    // filter by tags containing the filter string
+                    activities = activities
+                        .Where(a =>
+                            a.Tags != null &&
+                            a.Tags.Any(tag =>
+                                !string.IsNullOrWhiteSpace(tag) &&
+                                tag.ToLower().Contains(normalizedFilter)))
+                        .ToList();
+                }
+            }
 
 
 
@@ -81,7 +97,7 @@ namespace Sir98Backend.Services
                     // Single event
                     if (activity.StartUtc >= fromUtc && activity.StartUtc < toUtc) //If the activity's Start is within the range from parameters, run it through helper method
                     {
-                        AddOccurrence(activity, activity.StartUtc, activity.EndUtc, changeLookup, result, isSubscribed);
+                        AddOccurrence(activity, activity.StartUtc, activity.EndUtc, changeLookup, result);
                     }
 
                     continue;
@@ -96,8 +112,12 @@ namespace Sir98Backend.Services
                 foreach (var (originalStartUtc, originalEndUtc) in
                          GenerateBaseOccurrences(activity, fromUtc, toUtc))
                 {
-                    AddOccurrence(activity, originalStartUtc, originalEndUtc, changeLookup, result, isSubscribed);
+                    AddOccurrence(activity, originalStartUtc, originalEndUtc, changeLookup, result);
                 }
+            }
+            if (userId != null)
+            {
+                SetToSubscribed(result, filteredByMine, userId);
             }
 
             return result
@@ -153,8 +173,7 @@ namespace Sir98Backend.Services
             DateTimeOffset originalStartUtc,
             DateTimeOffset originalEndUtc,
             Dictionary<(int ActivityId, DateTimeOffset OriginalStartUtc), ChangedActivity> changeLookup,
-            List<ActivityOccurrenceDto> result,
-            bool isSubscribed)
+            List<ActivityOccurrenceDto> result)
         {
             if (changeLookup.TryGetValue((activity.Id, originalStartUtc), out var change))
             {
@@ -182,8 +201,7 @@ namespace Sir98Backend.Services
                     Link = activity.Link,
                     Instructors = instructors,
                     Tags = tags ?? new List<string>(),
-                    Cancelled = change.IsCancelled,
-                    isSubscribed = isSubscribed
+                    Cancelled = change.IsCancelled
                 });
             }
             else
@@ -202,10 +220,73 @@ namespace Sir98Backend.Services
                     Link = activity.Link,
                     Instructors = activity.Instructors,
                     Tags = activity.Tags ?? new List<string>(),
-                    isSubscribed = isSubscribed,
                     Cancelled = activity.Cancelled
                 });
             }
         }
+
+        //private (List<Activity> activities, bool filteredByMine) ApplyFilters(
+        // List<Activity> activities,
+        // string filter,
+        // string? userId)
+        //{
+        //    bool filteredByMine = false;
+
+        //    if (string.IsNullOrWhiteSpace(filter))
+        //        return (activities, filteredByMine);
+
+        //    if (string.Equals(filter, "mine", StringComparison.OrdinalIgnoreCase) && userId != null)
+        //    {
+        //        filteredByMine = true;
+
+        //        var subscribedActivityIds = _activitySubsRepo.GetByUserId(userId)
+        //            .Select(s => s.ActivityId)
+        //            .ToHashSet();
+
+        //        var filtered = activities
+        //            .Where(a => subscribedActivityIds.Contains(a.Id))
+        //            .ToList();
+
+        //        return (filtered, filteredByMine);
+        //    }
+
+        //    var lowerFilter = filter.ToLowerInvariant();
+
+        //    var tagFiltered = activities
+        //        .Where(a => a.Tags != null &&
+        //                    a.Tags.Any(tag => tag.ToLowerInvariant().Contains(lowerFilter)))
+        //        .ToList();
+
+        //    return (tagFiltered, filteredByMine);
+        //}
+
+
+
+
+
+        private void SetToSubscribed(List<ActivityOccurrenceDto> result, bool filteredByMine, string userId)
+        {
+            if (filteredByMine == true) //if UserId is provided and we are filtering by "mine", then result will only contain subscribed activities, so we can set all to true
+            {
+                foreach (var occurrence in result)
+                {
+                    occurrence.isSubscribed = true;
+                }
+                return;
+            }
+            else 
+            {
+            
+                var subscribedActivityIds = _activitySubsRepo.GetByUserId(userId)
+                    .Select(s => s.ActivityId)
+                    .ToHashSet();
+                foreach (var occurrence in result)
+                {
+                    occurrence.isSubscribed = subscribedActivityIds.Contains(occurrence.ActivityId);
+                }
+             }
+
+        }
     }
+
 }

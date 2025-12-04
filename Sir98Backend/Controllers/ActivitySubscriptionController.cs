@@ -50,16 +50,29 @@ namespace Sir98Backend.Controllers
         }
 
         // DELETE: api/ActivitySubscription/{id}
-        [HttpDelete("{id:int}")]
-        public IActionResult DeleteById(int id)
+        //[HttpDelete("{id:int}")]
+        //public IActionResult DeleteById(int id)
+        //{
+        //    var deleted = _repository.DeleteById(id);
+
+        //    if (!deleted)
+        //        return NotFound($"Subscription with id {id} not found.");
+
+        //    // 204 No Content
+        //    return NoContent();
+        //}
+        // DELETE: api/ActivitySubscription
+        [HttpDelete]
+        public IActionResult Delete([FromBody] ActivitySubscription sub)
         {
-            var deleted = _repository.DeleteById(id);
+            var deleted = _repository.Delete(sub.UserId, sub.ActivityId, sub.OriginalStartUtc);
 
             if (!deleted)
-                return NotFound($"Subscription with id {id} not found.");
+                return NotFound("Subscription not found.");
 
             // 204 No Content
             return NoContent();
         }
+
     }
 }
