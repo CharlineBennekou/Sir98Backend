@@ -31,6 +31,9 @@ namespace Sir98Backend.Repository
                 s.OriginalStartUtc == subscription.OriginalStartUtc
             );
 
+            if (alreadySubscribed)
+                return null;
+
             subscription.Id = _nextId++;
             _subscriptions.Add(subscription);
 
