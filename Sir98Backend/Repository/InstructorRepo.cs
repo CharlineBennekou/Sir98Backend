@@ -12,9 +12,9 @@ namespace Sir98Backend.Repository
         public InstructorRepo()
         {
             _instructors = new List<Instructor>();
-            _instructors.Add(new Instructor { Id = _nextId++, Email = "hans45@gmail.com", Number = "22456750", FirstName = "Hans", Image = "hansBillede.png" });
-            _instructors.Add(new Instructor { Id = _nextId++, Email = "liselotte@gmail.com", Number = "79638276", FirstName = "Liselotte", Image = "LiselotteBillede.png" });
-            _instructors.Add(new Instructor { Id = _nextId++, Email = "jeppe@gmail.com", Number = "30567892", FirstName = "Jeppe", Image = "JeppeBillede.png" });
+            _instructors.Add(new Instructor { Id = _nextId++, Email = "larsboh@roskilde.dk", Number = "24629361", FirstName = "Lars", Image = "hansBillede.png" });
+            _instructors.Add(new Instructor { Id = _nextId++, Email = "lillianv@roskilde.dk", Number = "30841920", FirstName = "Lillian", Image = "LiselotteBillede.png" });
+            _instructors.Add(new Instructor { Id = _nextId++, Email = "pietherlh@roskilde.dk", Number = "61246799", FirstName = "Piether", Image = "JeppeBillede.png" });
 
         }
 
