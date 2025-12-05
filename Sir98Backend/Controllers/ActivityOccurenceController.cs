@@ -22,7 +22,9 @@ namespace Sir98Backend.Controllers
         [HttpGet]
         public ActionResult<IEnumerable<ActivityOccurrenceDto>> Get(
             [FromQuery] DateTimeOffset? from = null, //Defaults to now if not provided
-            [FromQuery] int days = 7) //Defaults to 7 days if not provided
+            [FromQuery] int days = 7, //Defaults to 7 days if not provided
+            [FromQuery] string? filter = null,
+            [FromQuery] string? userId = null)
         {
             if (days <= 0)
             {
@@ -34,9 +36,14 @@ namespace Sir98Backend.Controllers
                 return BadRequest("The 'from' parameter must be sent in UTC (offset +00:00). Example: 2026-03-03T17:00:00Z");
             }
 
+            if(filter == "mine" && userId==null) //If you aren't logged in, you cant filter by mine. Frontend should prevent this, but just in case, we will clear filter
+            {
+                filter = null;
+            }
+
             var fromUtc = (from ?? DateTimeOffset.UtcNow).ToUniversalTime();
 
-            var occurrences = _service.GetOccurrences(fromUtc, days);
+            var occurrences = _service.GetOccurrences(fromUtc, days, filter, userId);
 
             return Ok(occurrences);
         }

@@ -2,6 +2,9 @@
 using Ical.Net.CalendarComponents;
 using Ical.Net.DataTypes;
 using Ical.Net.Evaluation;
+using Microsoft.AspNetCore.Components;
+using Org.BouncyCastle.Bcpg;
+using Org.BouncyCastle.Security;
 using Sir98Backend.Models;
 using Sir98Backend.Models.DataTransferObjects;
 using Sir98Backend.Repository;
@@ -12,16 +15,18 @@ namespace Sir98Backend.Services
     {
         private readonly ActivityRepo _activityRepo;
         private readonly ChangedActivityRepo _changedActivityRepo;
+        private readonly ActivitySubscriptionRepo _activitySubsRepo;
 
         private static readonly TimeZoneInfo DanishZone =
             TimeZoneInfo.FindSystemTimeZoneById("Europe/Copenhagen");
 
         private const string DanishTzId = "Europe/Copenhagen";
 
-        public ActivityOccurrenceService(ActivityRepo activityRepo, ChangedActivityRepo changedActivityRepo)
+        public ActivityOccurrenceService(ActivityRepo activityRepo, ChangedActivityRepo changedActivityRepo, ActivitySubscriptionRepo activitySubRepo)
         {
             _activityRepo = activityRepo;
             _changedActivityRepo = changedActivityRepo;
+            _activitySubsRepo = activitySubRepo;
         }
         /// <summary>
         /// Gets all Activities and their recurrences from a specific date and x amount of days forward.
@@ -30,11 +35,52 @@ namespace Sir98Backend.Services
         /// <param name="fromUtc"></param> StartTime in UTC. Used so we can "get the next page" starting from right after the last StartTime shown
         /// <param name="days"></param> Amount of days forward we will get. For example 7 days forward means we will get from StartTime until 7 days later
         /// <returns></returns>
-        public IEnumerable<ActivityOccurrenceDto> GetOccurrences(DateTimeOffset fromUtc, int days)
+        public IEnumerable<ActivityOccurrenceDto> GetOccurrences(DateTimeOffset fromUtc, int days, string filter, string userId)
         {
             var toUtc = fromUtc.AddDays(days); //Calculates the EndDate based on how many days from the parameter
 
-            var activities = _activityRepo.GetAll();
+            var activities = _activityRepo.GetAll(); //Gets all activities from repo
+
+            bool filteredByMine = false;
+
+            //if (filter != null)
+            //{
+            //    (activities, filteredByMine) = ApplyFilters(activities, filter, userId);
+            //}
+
+            if (!string.IsNullOrWhiteSpace(filter))
+            {
+                string normalizedFilter = filter.Trim().ToLower();
+
+                // if filter is "mine" and userId is provided, return only subscribed activities
+                if (normalizedFilter == "mine" && userId != null)
+                {
+                    filteredByMine = true;
+
+                    var subscribedActivityIds = _activitySubsRepo.GetByUserId(userId)
+                        .Select(s => s.ActivityId)
+                        .ToHashSet();
+
+                    activities = activities
+                        .Where(a => subscribedActivityIds.Contains(a.Id))
+                        .ToList();
+                }
+                else
+                {
+                    // filter by tags containing the filter string
+                    activities = activities
+                        .Where(a =>
+                            a.Tags != null &&
+                            a.Tags.Any(tag =>
+                                !string.IsNullOrWhiteSpace(tag) &&
+                                tag.ToLower().Contains(normalizedFilter)))
+                        .ToList();
+                }
+            }
+
+
+
+
             var changes = _changedActivityRepo.GetAll();
 
             // (ActivityId, OriginalStartUtc) -> ChangedActivity
@@ -68,6 +114,10 @@ namespace Sir98Backend.Services
                 {
                     AddOccurrence(activity, originalStartUtc, originalEndUtc, changeLookup, result);
                 }
+            }
+            if (userId != null)
+            {
+                SetToSubscribed(result, filteredByMine, userId);
             }
 
             return result
@@ -137,8 +187,6 @@ namespace Sir98Backend.Services
                 var instructors = change.NewInstructors ?? activity.Instructors;
                 var tags = change.NewTags ?? activity.Tags;
 
-                // Cancelled if either the parent activity is cancelled, or this specific instance is
-                var cancelled = activity.Cancelled || change.IsCancelled;
 
                 result.Add(new ActivityOccurrenceDto
                 {
@@ -153,7 +201,7 @@ namespace Sir98Backend.Services
                     Link = activity.Link,
                     Instructors = instructors,
                     Tags = tags ?? new List<string>(),
-                    Cancelled = cancelled
+                    Cancelled = change.IsCancelled
                 });
             }
             else
@@ -176,5 +224,69 @@ namespace Sir98Backend.Services
                 });
             }
         }
+
+        //private (List<Activity> activities, bool filteredByMine) ApplyFilters(
+        // List<Activity> activities,
+        // string filter,
+        // string? userId)
+        //{
+        //    bool filteredByMine = false;
+
+        //    if (string.IsNullOrWhiteSpace(filter))
+        //        return (activities, filteredByMine);
+
+        //    if (string.Equals(filter, "mine", StringComparison.OrdinalIgnoreCase) && userId != null)
+        //    {
+        //        filteredByMine = true;
+
+        //        var subscribedActivityIds = _activitySubsRepo.GetByUserId(userId)
+        //            .Select(s => s.ActivityId)
+        //            .ToHashSet();
+
+        //        var filtered = activities
+        //            .Where(a => subscribedActivityIds.Contains(a.Id))
+        //            .ToList();
+
+        //        return (filtered, filteredByMine);
+        //    }
+
+        //    var lowerFilter = filter.ToLowerInvariant();
+
+        //    var tagFiltered = activities
+        //        .Where(a => a.Tags != null &&
+        //                    a.Tags.Any(tag => tag.ToLowerInvariant().Contains(lowerFilter)))
+        //        .ToList();
+
+        //    return (tagFiltered, filteredByMine);
+        //}
+
+
+
+
+
+        private void SetToSubscribed(List<ActivityOccurrenceDto> result, bool filteredByMine, string userId)
+        {
+            if (filteredByMine == true) //if UserId is provided and we are filtering by "mine", then result will only contain subscribed activities, so we can set all to true
+            {
+                foreach (var occurrence in result)
+                {
+                    occurrence.isSubscribed = true;
+                }
+                return;
+            }
+            else 
+            {
+            
+                var subscribedActivityIds = _activitySubsRepo.GetByUserId(userId)
+                    .Select(s => s.ActivityId)
+                    .ToHashSet();
+                foreach (var occurrence in result)
+                {
+                    occurrence.isSubscribed = subscribedActivityIds.Contains(occurrence.ActivityId);
+                }
+             }
+
+        }
     }
+
 }
