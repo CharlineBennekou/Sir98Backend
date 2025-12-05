@@ -19,19 +19,19 @@ namespace Sir98Backend.Repository
             var instructor1 = new Instructor
             {
                 Id = 1,
-                Email = "alice@example.com",
-                Number = "12345678",
-                FirstName = "Alice",
-                Image = "alice.jpg"
+                Email = "larsboh@roskilde.dk",
+                Number = "24629361",
+                FirstName = "Lars",
+                Image = "hansBillede.png"
             };
 
             var instructor2 = new Instructor
             {
                 Id = 2,
-                Email = "bob@example.com",
-                Number = "87654321",
-                FirstName = "Bob",
-                Image = "bob.jpg"
+                Email = "larsboh@roskilde.dk",
+                Number = "24629361",
+                FirstName = "Lars",
+                Image = "hansBillede.png"
             };
 
             DateTimeOffset DkLocal(int year, int month, int day, int hour, int minute) //Will be deleted once we no longer use mockdata
