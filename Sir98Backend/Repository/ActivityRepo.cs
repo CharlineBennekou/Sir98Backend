@@ -19,10 +19,10 @@ namespace Sir98Backend.Repository
             var instructor1 = new Instructor
             {
                 Id = 1,
-                Email = "larsboh@roskilde.dk",
-                Number = "24629361",
-                FirstName = "Lars",
-                Image = "hansBillede.png"
+                Email = "",
+                Number = "",
+                FirstName = "Sarah",
+                Image = ""
             };
 
             var instructor2 = new Instructor
