@@ -34,34 +34,30 @@ namespace Sir98Backend.Controllers
         [HttpPost]
         public ActionResult<ActivitySubscription> Post([FromBody] ActivitySubscription subscription)
         {
-            if (subscription == null)
-                return BadRequest("Body is required.");
+            try
+            {
+                if (string.IsNullOrWhiteSpace(subscription.UserId))
+                    return BadRequest("UserId is required.");
 
-            if (string.IsNullOrWhiteSpace(subscription.UserId))
-                return BadRequest("UserId is required.");
+                if (subscription.ActivityId <= 0)
+                    return BadRequest("ActivityId must be greater than 0.");
 
-            if (subscription.ActivityId <= 0)
-                return BadRequest("ActivityId must be greater than 0.");
+                var created = _repository.Add(subscription);
+                // Return 201 Created with the created entity
+                return Created($"api/ActivitySubscription/{created.Id}", created);
+            }
+            catch (Exception ex)
+            {
+                if (subscription == null)
+                {
+                    return BadRequest("Body is required.");
+                }
 
-            var created = _repository.Add(subscription);
-
-            // Return 201 Created with the created entity
-            return Created($"api/ActivitySubscription/{created.Id}", created);
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+               
         }
 
-        // DELETE: api/ActivitySubscription/{id}
-        //[HttpDelete("{id:int}")]
-        //public IActionResult DeleteById(int id)
-        //{
-        //    var deleted = _repository.DeleteById(id);
-
-        //    if (!deleted)
-        //        return NotFound($"Subscription with id {id} not found.");
-
-        //    // 204 No Content
-        //    return NoContent();
-        //}
-        // DELETE: api/ActivitySubscription
         [HttpDelete]
         public IActionResult Delete([FromBody] ActivitySubscription sub)
         {
