@@ -1,4 +1,4 @@
-﻿using Org.BouncyCastle.Bcpg.OpenPgp;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace Sir98Backend.Models
 {
@@ -9,23 +9,32 @@ namespace Sir98Backend.Models
     /// </summary>
     public class ChangedActivity
     {
+        
         public int Id { get; set; }
+        
         public int ActivityId { get; set; }
-
+        
         public DateTimeOffset OriginalStartUtc { get; set; } //It is important to preserve the originalStart since that is how we identify the activity. Dont change this property if you want a new start.
-
+        
         public bool IsCancelled { get; set; }
-
-
         public DateTimeOffset? NewStartUtc { get; set; }
         public DateTimeOffset? NewEndUtc { get; set; }
 
-        public string? NewTitle { get; set; }
-        public string? NewDescription { get; set; }
-        public string? NewAddress { get; set; }
-        public List<Instructor>? NewInstructors { get; set; }
         
-        public List<string>? NewTags { get; set; }
+        public string? NewTitle { get; set; }
+        
+        public string? NewDescription { get; set; }
+       
+        public string? NewAddress { get; set; }
+
+        public ICollection<Instructor> NewInstructors { get; set; } = new List<Instructor>();
+
+        public string? NewTag { get; set; }
+
+        public Activity Activity { get; set; }
+
+
+
 
     }
 }

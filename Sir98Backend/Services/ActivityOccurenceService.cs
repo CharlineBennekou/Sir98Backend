@@ -69,12 +69,10 @@ namespace Sir98Backend.Services
                 {
                     // filter by tags containing the filter string
                     activities = activities
-                        .Where(a =>
-                            a.Tags != null &&
-                            a.Tags.Any(tag =>
-                                !string.IsNullOrWhiteSpace(tag) &&
-                                tag.ToLower().Contains(normalizedFilter)))
-                        .ToList();
+                      .Where(a =>
+                       !string.IsNullOrWhiteSpace(a.Tag) &&
+                       a.Tag.ToLower().Contains(normalizedFilter))
+                      .ToList();
                 }
             }
 
@@ -128,8 +126,8 @@ namespace Sir98Backend.Services
         /// <summary>
         /// Uses Ical.Net to expand the RRULE of a single Activity into UTC occurrences.
         /// </summary>
-     private IEnumerable<(DateTimeOffset startUtc, DateTimeOffset endUtc)>
-    GenerateBaseOccurrences(Activity activity, DateTimeOffset fromUtc, DateTimeOffset toUtc)
+        private IEnumerable<(DateTimeOffset startUtc, DateTimeOffset endUtc)>
+       GenerateBaseOccurrences(Activity activity, DateTimeOffset fromUtc, DateTimeOffset toUtc)
         {
             var fromLocal = TimeZoneInfo.ConvertTime(fromUtc, DanishZone).DateTime; //From today
             var toLocal = TimeZoneInfo.ConvertTime(toUtc, DanishZone).DateTime; //To today
@@ -144,7 +142,7 @@ namespace Sir98Backend.Services
             };
 
             calendarEvent.RecurrenceRules.Add(new RecurrencePattern(activity.Rrule)); //Adds the RRULE to the calendar event
-           
+
             var fromLocalCal = new CalDateTime(fromLocal, DanishTzId); //Converts to CalDateTime
             var toLocalCal = new CalDateTime(toLocal, DanishTzId); //Converts to CalDateTime
 
@@ -185,7 +183,7 @@ namespace Sir98Backend.Services
                 var description = change.NewDescription ?? activity.Description;
                 var address = change.NewAddress ?? activity.Address;
                 var instructors = change.NewInstructors ?? activity.Instructors;
-                var tags = change.NewTags ?? activity.Tags;
+                var tag = change.NewTag ?? activity.Tag;
 
 
                 result.Add(new ActivityOccurrenceDto
@@ -199,8 +197,8 @@ namespace Sir98Backend.Services
                     Address = address ?? "",
                     Image = activity.Image,
                     Link = activity.Link,
-                    Instructors = instructors,
-                    Tags = tags ?? new List<string>(),
+                    Instructors = instructors?.ToList(),
+                    Tag = tag ?? "",
                     Cancelled = change.IsCancelled
                 });
             }
@@ -218,47 +216,14 @@ namespace Sir98Backend.Services
                     Address = activity.Address,
                     Image = activity.Image,
                     Link = activity.Link,
-                    Instructors = activity.Instructors,
-                    Tags = activity.Tags ?? new List<string>(),
+                    Instructors = activity.Instructors?.ToList(),
+                    Tag = activity.Tag ?? "",
                     Cancelled = activity.Cancelled
                 });
             }
         }
 
-        //private (List<Activity> activities, bool filteredByMine) ApplyFilters(
-        // List<Activity> activities,
-        // string filter,
-        // string? userId)
-        //{
-        //    bool filteredByMine = false;
 
-        //    if (string.IsNullOrWhiteSpace(filter))
-        //        return (activities, filteredByMine);
-
-        //    if (string.Equals(filter, "mine", StringComparison.OrdinalIgnoreCase) && userId != null)
-        //    {
-        //        filteredByMine = true;
-
-        //        var subscribedActivityIds = _activitySubsRepo.GetByUserId(userId)
-        //            .Select(s => s.ActivityId)
-        //            .ToHashSet();
-
-        //        var filtered = activities
-        //            .Where(a => subscribedActivityIds.Contains(a.Id))
-        //            .ToList();
-
-        //        return (filtered, filteredByMine);
-        //    }
-
-        //    var lowerFilter = filter.ToLowerInvariant();
-
-        //    var tagFiltered = activities
-        //        .Where(a => a.Tags != null &&
-        //                    a.Tags.Any(tag => tag.ToLowerInvariant().Contains(lowerFilter)))
-        //        .ToList();
-
-        //    return (tagFiltered, filteredByMine);
-        //}
 
 
 
@@ -270,21 +235,21 @@ namespace Sir98Backend.Services
             {
                 foreach (var occurrence in result)
                 {
-                    occurrence.isSubscribed = true;
+                    occurrence.IsSubscribed = true;
                 }
                 return;
             }
-            else 
+            else
             {
-            
+
                 var subscribedActivityIds = _activitySubsRepo.GetByUserId(userId)
                     .Select(s => s.ActivityId)
                     .ToHashSet();
                 foreach (var occurrence in result)
                 {
-                    occurrence.isSubscribed = subscribedActivityIds.Contains(occurrence.ActivityId);
+                    occurrence.IsSubscribed = subscribedActivityIds.Contains(occurrence.ActivityId);
                 }
-             }
+            }
 
         }
     }

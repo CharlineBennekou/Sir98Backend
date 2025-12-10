@@ -57,7 +57,7 @@ namespace Sir98Backend.Repository
                 Cancelled = false,
                 Description = "Badmintontræning for alle niveauer.",
                 IsRecurring = true,
-                Tags = new List<string> { "Træning", "Cirkeltræning" },
+                Tag = "Træning",
                 Rrule = "FREQ=WEEKLY;BYDAY=WE"
             });
 
@@ -73,7 +73,7 @@ namespace Sir98Backend.Repository
                 Cancelled = false,
                 Instructors = new List<Instructor> { instructor1, instructor2 },
                 Description = "Cirkeltræning med fokus på hele kroppen.",
-                Tags = new List<string> { "Træning", "Cirkeltræning" },
+                Tag =  "Træning",
                 IsRecurring = true,
                 Rrule = "FREQ=WEEKLY;BYDAY=WE"
             });
@@ -89,7 +89,7 @@ namespace Sir98Backend.Repository
                 Cancelled = false,
                 Instructors = new List<Instructor> { instructor2 },
                 Description = "Formiddags-cirkeltræning.",
-                Tags = new List<string> { "Træning", "Cirkeltræning" },
+                Tag = "Træning",
                 IsRecurring = true,
                 Rrule = "FREQ=WEEKLY;BYDAY=FR"
             });
@@ -105,7 +105,7 @@ namespace Sir98Backend.Repository
                 Link = "https://if-sir98.dk/#styrke-og-sundhedstr%C3%A6ning",
                 Cancelled = false,
                 Description = "Åbent i træningscenteret. Ingen instruktør.",
-                Tags = new List<string> { "Træning" },
+                Tag = "Træning" ,
                 IsRecurring = true,
                 Rrule = "FREQ=WEEKLY;BYDAY=MO"
             });
@@ -121,7 +121,7 @@ namespace Sir98Backend.Repository
                 Link = "https://if-sir98.dk/#styrke-og-sundhedstr%C3%A6ning",
                 Cancelled = false,
                 Description = "Åbent i træningscenteret. Ingen instruktør.",
-                Tags = new List<string> { "Træning" },
+                Tag = "Træning",
                 IsRecurring = true,
                 Rrule = "FREQ=WEEKLY;BYDAY=WE"
             });
@@ -137,7 +137,7 @@ namespace Sir98Backend.Repository
                 Link = "https://if-sir98.dk/#styrke-og-sundhedstr%C3%A6ning",
                 Cancelled = false,
                 Description = "Åbent i træningscenteret. Ingen instruktør.",
-                Tags = new List<string> { "Træning" },
+                  Tag = "Træning",
                 IsRecurring = true,
                 Rrule = "FREQ=WEEKLY;BYDAY=FR"
             });
@@ -152,7 +152,7 @@ namespace Sir98Backend.Repository
                 Link = "https://if-sir98.dk/#styrke-og-sundhedstr%C3%A6ning",
                 Cancelled = false,
                 Description = "Åbent i træningscenteret. Ingen instruktør.",
-                Tags = new List<string> { "Træning" },
+                 Tag = "Træning",
                 IsRecurring = false,
                 
             });
@@ -203,7 +203,7 @@ namespace Sir98Backend.Repository
             existingActivity.Cancelled = activity.Cancelled;
             existingActivity.Description = activity.Description;
             existingActivity.Instructors = activity.Instructors;
-            existingActivity.Tags = activity.Tags;
+            existingActivity.Tag = activity.Tag;
             existingActivity.IsRecurring = activity.IsRecurring;
             existingActivity.Rrule = activity.Rrule;
             return existingActivity;

@@ -1,12 +1,14 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
+using Sir98Backend.Controllers;
+using Sir98Backend.Data;
 using Sir98Backend.Repository;
+using Sir98Backend.Services;
 using System.Text;
 using System.Threading.RateLimiting;
-using Sir98Backend.Services;
-using Sir98Backend.Controllers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -92,8 +94,11 @@ builder.Services.AddRateLimiter(options =>
     };
 });
 
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddSwaggerGen();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
