@@ -1,4 +1,5 @@
-﻿using Sir98Backend.Models;
+﻿using Microsoft.AspNetCore.SignalR;
+using Sir98Backend.Models;
 
 namespace Sir98Backend.Repository
 {
@@ -19,40 +20,73 @@ namespace Sir98Backend.Repository
                 .ToList();
         }
 
-        public ActivitySubscription Add(ActivitySubscription subscription)
+        public ActivitySubscription? Add(ActivitySubscription subscription)
         {
-            if (subscription == null)
-                throw new ArgumentNullException(nameof(subscription));
-
-            // Check if user is already subscribed to this activity at this time
-            var alreadySubscribed = _subscriptions.Any(s =>
+            Console.WriteLine($"Repo.Add called: user={subscription.UserId}, act={subscription.ActivityId}, original={subscription.OriginalStartUtc}, all={subscription.AllOccurrences}");
+            if (subscription.AllOccurrences)
+            {
+                // Check duplicate series-subscription
+                var exists = _subscriptions.Any(s =>
                 s.UserId == subscription.UserId &&
-                s.ActivityId == subscription.ActivityId &&
-                s.OriginalStartUtc == subscription.OriginalStartUtc
-            );
+                    s.ActivityId == subscription.ActivityId &&
+                    s.AllOccurrences == true);
+                if (exists) return null;
 
-            if (alreadySubscribed)
-                return null;
+                  subscription.OriginalStartUtc = null;
+            }
+            else
+            {
+                // Check duplicate single-subscription
+                var exists = _subscriptions.Any(s =>
+                s.UserId == subscription.UserId &&
+                    s.ActivityId == subscription.ActivityId &&
+                    s.OriginalStartUtc == subscription.OriginalStartUtc);
+
+                if (exists) return null;
+            }
 
             subscription.Id = _nextId++;
             _subscriptions.Add(subscription);
+            Console.WriteLine("Added subscription; total now = " + _subscriptions.Count);
 
             return subscription;
         }
 
-        public bool Delete(string userId, int activityId, DateTimeOffset originalStartUtc)
+        public bool Delete(string userId, int activityId, DateTimeOffset? originalStartUtc)
         {
-            var existing = _subscriptions.FirstOrDefault(s =>
+            ActivitySubscription? subscription;
+
+            if (originalStartUtc == null)
+            {
+                subscription = _subscriptions.FirstOrDefault(s =>
                 s.UserId == userId &&
                 s.ActivityId == activityId &&
-                s.OriginalStartUtc == originalStartUtc
-            );
-
-            if (existing == null)
+                s.AllOccurrences == true);
+            }
+            else
+            {
+                subscription = _subscriptions.FirstOrDefault(s =>
+                    s.UserId == userId &&
+                    s.ActivityId == activityId &&
+                    s.OriginalStartUtc == originalStartUtc);
+            }
+            if (subscription == null)
                 return false;
 
-            _subscriptions.Remove(existing);
+            _subscriptions.Remove(subscription);
             return true;
+
+            /*  var existing = _subscriptions.FirstOrDefault(s =>
+                  s.UserId == userId &&
+                  s.ActivityId == activityId &&
+                  s.OriginalStartUtc == originalStartUtc
+              );
+
+              if (existing == null)
+                  return false;
+
+              _subscriptions.Remove(existing);
+              return true;*/
         }
 
     }

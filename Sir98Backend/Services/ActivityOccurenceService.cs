@@ -270,7 +270,7 @@ namespace Sir98Backend.Services
             {
                 foreach (var occurrence in result)
                 {
-                    occurrence.isSubscribed = true;
+                    occurrence.IsSubscribed = true;
                 }
                 return;
             }
@@ -282,7 +282,7 @@ namespace Sir98Backend.Services
                     .ToHashSet();
                 foreach (var occurrence in result)
                 {
-                    occurrence.isSubscribed = subscribedActivityIds.Contains(occurrence.ActivityId);
+                    occurrence.IsSubscribed = subscribedActivityIds.Contains(occurrence.ActivityId);
                 }
              }
 

@@ -34,40 +34,57 @@ namespace Sir98Backend.Controllers
         [HttpPost]
         public ActionResult<ActivitySubscription> Post([FromBody] ActivitySubscription subscription)
         {
-            try
-            {
-                if (string.IsNullOrWhiteSpace(subscription.UserId))
-                    return BadRequest("UserId is required.");
+            if (subscription == null) return BadRequest("Body is required.");
+            if (string.IsNullOrWhiteSpace(subscription.UserId)) return BadRequest("UserId is required.");
+            if (subscription.ActivityId <= 0) return BadRequest("ActivityId must be > than 0.");
 
-                if (subscription.ActivityId <= 0)
-                    return BadRequest("ActivityId must be greater than 0.");
+            var created = _repository.Add(subscription);
+            return Created($"api/ActivitySubscription/{created.Id}", created);
 
-                var created = _repository.Add(subscription);
-                // Return 201 Created with the created entity
-                return Created($"api/ActivitySubscription/{created.Id}", created);
-            }
-            catch (Exception ex)
-            {
-                if (subscription == null)
-                {
-                    return BadRequest("Body is required.");
-                }
 
-                return StatusCode(500, $"Internal server error: {ex.Message}");
-            }
-               
+
+            /* try
+             {
+                 if (string.IsNullOrWhiteSpace(subscription.UserId))
+                     return BadRequest("UserId is required.");
+
+                 if (subscription.ActivityId <= 0)
+                     return BadRequest("ActivityId must be greater than 0.");
+
+                 var created = _repository.Add(subscription);
+                 // Return 201 Created with the created entity
+                 return Created($"api/ActivitySubscription/{created.Id}", created);
+             }
+             catch (Exception ex)
+             {
+                 if (subscription == null)
+                 {
+                     return BadRequest("Body is required.");
+                 }
+
+                 return StatusCode(500, $"Internal server error: {ex.Message}");
+             }*/
+
         }
 
         [HttpDelete]
         public IActionResult Delete([FromBody] ActivitySubscription sub)
         {
-            var deleted = _repository.Delete(sub.UserId, sub.ActivityId, sub.OriginalStartUtc);
+            if (sub == null)
+                return BadRequest("Body is required.");
 
+            var deleted = _repository.Delete(sub.UserId, sub.ActivityId, sub.OriginalStartUtc);
             if (!deleted)
                 return NotFound("Subscription not found.");
-
-            // 204 No Content
             return NoContent();
+
+            /* var deleted = _repository.Delete(sub.UserId, sub.ActivityId, sub.OriginalStartUtc);
+
+             if (!deleted)
+                 return NotFound("Subscription not found.");
+
+             // 204 No Content
+             return NoContent();*/
         }
 
     }

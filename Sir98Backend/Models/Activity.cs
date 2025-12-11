@@ -18,5 +18,8 @@
         //If the event is recurring, we will use a format called Rrule to save the pattern as a string which the frontend will use to generate the recurrences.
         public bool IsRecurring { get; set; }
         public string? Rrule { get; set; }
+
+        public ICollection<ActivitySubscription> ActivitySubscriptions { get; set; }
+        = new List<ActivitySubscription>();
     }
 }
