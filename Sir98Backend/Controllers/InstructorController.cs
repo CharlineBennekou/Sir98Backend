@@ -2,8 +2,6 @@
 using Sir98Backend.Models;
 using Sir98Backend.Repository;
 
-// For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-
 namespace Sir98Backend.Controllers
 {
     [Route("api/[controller]")]
@@ -19,46 +17,61 @@ namespace Sir98Backend.Controllers
 
         // GET: api/Instructor
         [HttpGet]
-        public ActionResult<IEnumerable<Instructor>> GetAll()
+        public async Task<ActionResult<IEnumerable<Instructor>>> GetAll()
         {
-            return Ok(_instructorRepo.GetAllAsync());
+            var instructors = await _instructorRepo.GetAllAsync();
+            return Ok(instructors);
         }
 
         // GET: api/Instructor/5
         [HttpGet("{id}")]
-        public ActionResult<Instructor> GetById(int id)
+        public async Task<ActionResult<Instructor>> GetById(int id)
         {
-            var instructor = _instructorRepo.GetByIdAsync(id);
+            var instructor = await _instructorRepo.GetByIdAsync(id);
             if (instructor == null)
                 return NotFound();
+
             return Ok(instructor);
         }
 
         // POST: api/Instructor
         [HttpPost]
-        public ActionResult<Instructor> Post([FromBody] Instructor instructor)
+        public async Task<ActionResult<Instructor>> Post([FromBody] Instructor instructor)
         {
-            var created = _instructorRepo.AddAsync(instructor);
-            return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+            if (instructor == null)
+                return BadRequest("Body is required.");
+
+            var created = await _instructorRepo.AddAsync(instructor);
+
+            return CreatedAtAction(
+                nameof(GetById),
+                new { id = created.Id },
+                created
+            );
         }
 
         // PUT: api/Instructor/5
         [HttpPut("{id}")]
-        public ActionResult<Instructor> Put(int id, [FromBody] Instructor instructor)
+        public async Task<ActionResult<Instructor>> Put(int id, [FromBody] Instructor instructor)
         {
-            var updated = _instructorRepo.UpdateAsync(id, instructor);
+            if (instructor == null)
+                return BadRequest("Body is required.");
+
+            var updated = await _instructorRepo.UpdateAsync(id, instructor);
             if (updated == null)
                 return NotFound();
+
             return Ok(updated);
         }
 
         // DELETE: api/Instructor/5
         [HttpDelete("{id}")]
-        public ActionResult Delete(int id)
+        public async Task<IActionResult> Delete(int id)
         {
-            var deleted = _instructorRepo.DeleteAsync(id);
+            var deleted = await _instructorRepo.DeleteAsync(id);
             if (deleted == null)
                 return NotFound();
+
             return NoContent();
         }
     }

@@ -2,8 +2,6 @@
 using Sir98Backend.Models;
 using Sir98Backend.Repository;
 
-// For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-
 namespace Sir98Backend.Controllers
 {
     [Route("api/[controller]")]
@@ -19,46 +17,61 @@ namespace Sir98Backend.Controllers
 
         // GET: api/Activity
         [HttpGet]
-        public ActionResult<IEnumerable<Activity>> GetAll()
+        public async Task<ActionResult<IEnumerable<Activity>>> GetAll()
         {
-            return Ok(_activityRepo.GetAllAsync());
+            var activities = await _activityRepo.GetAllAsync();
+            return Ok(activities);
         }
 
         // GET: api/Activity/5
         [HttpGet("{id}")]
-        public ActionResult<Activity> GetById(int id)
+        public async Task<ActionResult<Activity>> GetById(int id)
         {
-            var activity = _activityRepo.GetByIdAsync(id);
+            var activity = await _activityRepo.GetByIdAsync(id);
             if (activity == null)
                 return NotFound();
+
             return Ok(activity);
         }
 
         // POST: api/Activity
         [HttpPost]
-        public ActionResult<Activity> Post([FromBody] Activity activity)
+        public async Task<ActionResult<Activity>> Post([FromBody] Activity activity)
         {
-            var created = _activityRepo.AddAsync(activity);
-            return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+            if (activity == null)
+                return BadRequest("Body is required.");
+
+            var created = await _activityRepo.AddAsync(activity);
+
+            return CreatedAtAction(
+                nameof(GetById),
+                new { id = created.Id },
+                created
+            );
         }
 
         // PUT: api/Activity/5
         [HttpPut("{id}")]
-        public ActionResult<Activity> Put(int id, [FromBody] Activity activity)
+        public async Task<ActionResult<Activity>> Put(int id, [FromBody] Activity activity)
         {
-            var updated = _activityRepo.UpdateAsync(id, activity);
+            if (activity == null)
+                return BadRequest("Body is required.");
+
+            var updated = await _activityRepo.UpdateAsync(id, activity);
             if (updated == null)
                 return NotFound();
+
             return Ok(updated);
         }
 
         // DELETE: api/Activity/5
         [HttpDelete("{id}")]
-        public ActionResult Delete(int id)
+        public async Task<IActionResult> Delete(int id)
         {
-            var deleted = _activityRepo.DeleteAsync(id);
+            var deleted = await _activityRepo.DeleteAsync(id);
             if (deleted == null)
                 return NotFound();
+
             return NoContent();
         }
     }

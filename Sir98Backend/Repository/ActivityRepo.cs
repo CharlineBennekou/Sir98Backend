@@ -15,14 +15,14 @@ namespace Sir98Backend.Repository
         }
 
        
-        public  Task<List<Activity>> GetAllAsync()
-            => _context.Activities
+        public async Task<List<Activity>> GetAllAsync()
+            => await _context.Activities
                 .AsNoTracking()
                 .ToListAsync();
 
         
-        public Task<Activity?> GetByIdAsync(int id)
-            => _context.Activities
+        public async Task<Activity?> GetByIdAsync(int id)
+            => await _context.Activities
                 .AsNoTracking()
                 .FirstOrDefaultAsync(a => a.Id == id);
 
