@@ -70,11 +70,15 @@ namespace Sir98Backend.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status415UnsupportedMediaType)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public IActionResult Post(IEnumerable<IFormFile> images)
+        public IActionResult Post([FromForm]IEnumerable<IFormFile> images)
         {
-            if(images is null || images is default(IEnumerable<IFormFile>) || images.Count() < 1)
+            foreach (var key in Request.Form)
             {
-                return BadRequest();
+                Console.WriteLine(key);
+            }
+            if (images is null || images is default(IEnumerable<IFormFile>) || images.Count() < 1)
+            {
+                return BadRequest("Missing image in the request");
             }
             if(images.Count() > 1)
             {
