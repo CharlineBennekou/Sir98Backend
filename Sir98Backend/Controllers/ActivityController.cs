@@ -21,14 +21,14 @@ namespace Sir98Backend.Controllers
         [HttpGet]
         public ActionResult<IEnumerable<Activity>> GetAll()
         {
-            return Ok(_activityRepo.GetAll());
+            return Ok(_activityRepo.GetAllAsync());
         }
 
         // GET: api/Activity/5
         [HttpGet("{id}")]
         public ActionResult<Activity> GetById(int id)
         {
-            var activity = _activityRepo.GetById(id);
+            var activity = _activityRepo.GetByIdAsync(id);
             if (activity == null)
                 return NotFound();
             return Ok(activity);
@@ -38,7 +38,7 @@ namespace Sir98Backend.Controllers
         [HttpPost]
         public ActionResult<Activity> Post([FromBody] Activity activity)
         {
-            var created = _activityRepo.Add(activity);
+            var created = _activityRepo.AddAsync(activity);
             return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
         }
 
@@ -46,7 +46,7 @@ namespace Sir98Backend.Controllers
         [HttpPut("{id}")]
         public ActionResult<Activity> Put(int id, [FromBody] Activity activity)
         {
-            var updated = _activityRepo.Update(id, activity);
+            var updated = _activityRepo.UpdateAsync(id, activity);
             if (updated == null)
                 return NotFound();
             return Ok(updated);
@@ -56,7 +56,7 @@ namespace Sir98Backend.Controllers
         [HttpDelete("{id}")]
         public ActionResult Delete(int id)
         {
-            var deleted = _activityRepo.Delete(id);
+            var deleted = _activityRepo.DeleteAsync(id);
             if (deleted == null)
                 return NotFound();
             return NoContent();

@@ -20,11 +20,11 @@ namespace Sir98Backend.Controllers
         /// Example: GET /api/activity-occurrences?from=2025-12-01T00:00:00Z&days=7
         /// </summary>
         [HttpGet]
-        public ActionResult<IEnumerable<ActivityOccurrenceDto>> Get(
-            [FromQuery] DateTimeOffset? from = null, //Defaults to now if not provided
-            [FromQuery] int days = 7, //Defaults to 7 days if not provided
-            [FromQuery] string? filter = null,
-            [FromQuery] string? userId = null)
+        public async Task<ActionResult<IEnumerable<ActivityOccurrenceDto>>> Get(
+         [FromQuery] DateTimeOffset? from = null, // Defaults to now if not provided
+         [FromQuery] int days = 7,                // Defaults to 7 days if not provided
+         [FromQuery] string? filter = null,
+         [FromQuery] string? userId = null)
         {
             if (days <= 0)
             {
@@ -43,7 +43,7 @@ namespace Sir98Backend.Controllers
 
             var fromUtc = (from ?? DateTimeOffset.UtcNow).ToUniversalTime();
 
-            var occurrences = _service.GetOccurrences(fromUtc, days, filter, userId);
+            var occurrences = await _service.GetOccurrencesAsync(fromUtc, days, filter, userId);
 
             return Ok(occurrences);
         }

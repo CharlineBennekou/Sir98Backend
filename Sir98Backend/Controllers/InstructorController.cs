@@ -21,14 +21,14 @@ namespace Sir98Backend.Controllers
         [HttpGet]
         public ActionResult<IEnumerable<Instructor>> GetAll()
         {
-            return Ok(_instructorRepo.GetAll());
+            return Ok(_instructorRepo.GetAllAsync());
         }
 
         // GET: api/Instructor/5
         [HttpGet("{id}")]
         public ActionResult<Instructor> GetById(int id)
         {
-            var instructor = _instructorRepo.GetById(id);
+            var instructor = _instructorRepo.GetByIdAsync(id);
             if (instructor == null)
                 return NotFound();
             return Ok(instructor);
@@ -38,7 +38,7 @@ namespace Sir98Backend.Controllers
         [HttpPost]
         public ActionResult<Instructor> Post([FromBody] Instructor instructor)
         {
-            var created = _instructorRepo.Add(instructor);
+            var created = _instructorRepo.AddAsync(instructor);
             return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
         }
 
@@ -46,7 +46,7 @@ namespace Sir98Backend.Controllers
         [HttpPut("{id}")]
         public ActionResult<Instructor> Put(int id, [FromBody] Instructor instructor)
         {
-            var updated = _instructorRepo.Update(id, instructor);
+            var updated = _instructorRepo.UpdateAsync(id, instructor);
             if (updated == null)
                 return NotFound();
             return Ok(updated);
@@ -56,7 +56,7 @@ namespace Sir98Backend.Controllers
         [HttpDelete("{id}")]
         public ActionResult Delete(int id)
         {
-            var deleted = _instructorRepo.Delete(id);
+            var deleted = _instructorRepo.DeleteAsync(id);
             if (deleted == null)
                 return NotFound();
             return NoContent();

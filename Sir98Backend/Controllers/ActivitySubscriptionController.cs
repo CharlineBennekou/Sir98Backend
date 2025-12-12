@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Sir98Backend.Models;
 using Sir98Backend.Repository;
+
 namespace Sir98Backend.Controllers
 {
     [ApiController]
@@ -13,62 +14,61 @@ namespace Sir98Backend.Controllers
         {
             _repository = repository;
         }
+
         // GET: api/ActivitySubscription
         [HttpGet]
-        public ActionResult<IEnumerable<ActivitySubscription>> GetAll()
+        public async Task<ActionResult<IEnumerable<ActivitySubscription>>> GetAll()
         {
-            var subscriptions = _repository.GetAll();
+            var subscriptions = await _repository.GetAllAsync();
             return Ok(subscriptions);
         }
 
         // GET: api/ActivitySubscription/user/{userId}
         [HttpGet("user/{userId}")]
-        public ActionResult<IEnumerable<ActivitySubscription>> GetByUserId(string userId)
+        public async Task<ActionResult<IEnumerable<ActivitySubscription>>> GetByUserId(string userId)
         {
-            var result = _repository.GetByUserId(userId);
-            // Still returning 200 OK with an empty list if none found
+            var result = await _repository.GetByUserIdAsync(userId);
             return Ok(result);
         }
 
         // POST: api/ActivitySubscription
         [HttpPost]
-        public ActionResult<ActivitySubscription> Post([FromBody] ActivitySubscription subscription)
+        public async Task<ActionResult<ActivitySubscription>> Post([FromBody] ActivitySubscription subscription)
         {
-            try
-            {
-                if (string.IsNullOrWhiteSpace(subscription.UserId))
-                    return BadRequest("UserId is required.");
+            if (subscription == null)
+                return BadRequest("Body is required.");
 
-                if (subscription.ActivityId <= 0)
-                    return BadRequest("ActivityId must be greater than 0.");
+            if (string.IsNullOrWhiteSpace(subscription.UserId))
+                return BadRequest("UserId is required.");
 
-                var created = _repository.Add(subscription);
-                // Return 201 Created with the created entity
-                return Created($"api/ActivitySubscription/{created.Id}", created);
-            }
-            catch (Exception ex)
-            {
-                if (subscription == null)
-                {
-                    return BadRequest("Body is required.");
-                }
+            if (subscription.ActivityId <= 0)
+                return BadRequest("ActivityId must be greater than 0.");
 
-                return StatusCode(500, $"Internal server error: {ex.Message}");
-            }
-               
+            var created = await _repository.AddAsync(subscription);
+
+            // If repo returns null when already subscribed:
+            if (created == null)
+                return Conflict("Already subscribed.");
+
+            return Created($"api/ActivitySubscription/{created.Id}", created);
         }
 
         [HttpDelete]
-        public IActionResult Delete([FromBody] ActivitySubscription sub)
+        public async Task<IActionResult> Delete([FromBody] ActivitySubscription sub)
         {
-            var deleted = _repository.Delete(sub.UserId, sub.ActivityId, sub.OriginalStartUtc);
+            if (sub == null)
+                return BadRequest("Body is required.");
+
+            bool deleted = await _repository.DeleteAsync(
+                sub.UserId,
+                sub.ActivityId,
+                sub.OriginalStartUtc
+            );
 
             if (!deleted)
                 return NotFound("Subscription not found.");
 
-            // 204 No Content
-            return NoContent();
+            return NoContent(); // 204
         }
-
     }
 }

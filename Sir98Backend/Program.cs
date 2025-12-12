@@ -16,8 +16,17 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 
-builder.Services.AddSingleton<ActivityRepo>(new ActivityRepo());
-builder.Services.AddSingleton<InstructorRepo>(new InstructorRepo());
+//repositories
+//builder.Services.AddSingleton<ActivityRepo>(new ActivityRepo());
+//builder.Services.AddSingleton<InstructorRepo>(new InstructorRepo());
+
+builder.Services.AddScoped<ActivityRepo>();
+builder.Services.AddScoped<ActivitySubscriptionRepo>();
+builder.Services.AddScoped<ChangedActivityRepo>();
+builder.Services.AddScoped<InstructorRepo>();
+builder.Services.AddScoped<UserRepo>();
+
+
 builder.Services.AddSingleton<ChangedActivityRepo>();
 builder.Services.AddSingleton<ActivitySubscriptionRepo>();
 builder.Services.AddSingleton<UserRepo>();

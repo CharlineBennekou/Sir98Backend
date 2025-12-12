@@ -35,11 +35,11 @@ namespace Sir98Backend.Services
         /// <param name="fromUtc"></param> StartTime in UTC. Used so we can "get the next page" starting from right after the last StartTime shown
         /// <param name="days"></param> Amount of days forward we will get. For example 7 days forward means we will get from StartTime until 7 days later
         /// <returns></returns>
-        public IEnumerable<ActivityOccurrenceDto> GetOccurrences(DateTimeOffset fromUtc, int days, string filter, string userId)
+        public async Task<IEnumerable<ActivityOccurrenceDto>> GetOccurrencesAsync(DateTimeOffset fromUtc, int days, string filter, string userId)
         {
             var toUtc = fromUtc.AddDays(days); //Calculates the EndDate based on how many days from the parameter
 
-            var activities = _activityRepo.GetAll(); //Gets all activities from repo
+            IEnumerable<Activity> activities = await _activityRepo.GetAllAsync(); //Gets all activities from repo
 
             bool filteredByMine = false;
 
@@ -57,7 +57,7 @@ namespace Sir98Backend.Services
                 {
                     filteredByMine = true;
 
-                    var subscribedActivityIds = _activitySubsRepo.GetByUserId(userId)
+                    var subscribedActivityIds = (await _activitySubsRepo.GetByUserIdAsync(userId))
                         .Select(s => s.ActivityId)
                         .ToHashSet();
 
@@ -79,7 +79,7 @@ namespace Sir98Backend.Services
 
 
 
-            var changes = _changedActivityRepo.GetAll();
+            var changes = await _changedActivityRepo.GetAllAsync();
 
             // (ActivityId, OriginalStartUtc) -> ChangedActivity
             var changeLookup = changes
@@ -229,29 +229,26 @@ namespace Sir98Backend.Services
 
 
 
-        private void SetToSubscribed(List<ActivityOccurrenceDto> result, bool filteredByMine, string userId)
+        private async Task SetToSubscribed(List<ActivityOccurrenceDto> result, bool filteredByMine, string userId)
         {
-            if (filteredByMine == true) //if UserId is provided and we are filtering by "mine", then result will only contain subscribed activities, so we can set all to true
+            if (filteredByMine)
             {
                 foreach (var occurrence in result)
-                {
                     occurrence.IsSubscribed = true;
-                }
+
                 return;
             }
-            else
-            {
 
-                var subscribedActivityIds = _activitySubsRepo.GetByUserId(userId)
-                    .Select(s => s.ActivityId)
-                    .ToHashSet();
-                foreach (var occurrence in result)
-                {
-                    occurrence.IsSubscribed = subscribedActivityIds.Contains(occurrence.ActivityId);
-                }
-            }
+            var subs = await _activitySubsRepo.GetByUserIdAsync(userId);
 
+            var subscribedActivityIds = subs
+                .Select(s => s.ActivityId)
+                .ToHashSet();
+
+            foreach (var occurrence in result)
+                occurrence.IsSubscribed = subscribedActivityIds.Contains(occurrence.ActivityId);
         }
+
     }
 
 }

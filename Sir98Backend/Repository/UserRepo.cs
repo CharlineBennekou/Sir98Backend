@@ -1,37 +1,23 @@
-﻿using Isopoh.Cryptography.Argon2;
+﻿using Microsoft.EntityFrameworkCore;
+using Sir98Backend.Data;
 using Sir98Backend.Models;
-using System.Data;
 
 namespace Sir98Backend.Repository
 {
     public class UserRepo
     {
-        private readonly ICollection<User> Users;
+        private readonly AppDbContext _context;
 
-        public UserRepo()
+        public UserRepo(AppDbContext context)
         {
-            Users = new List<User>(){
-                new() {
-                    Email = "bente@sørensen.com",
-                    HashedPassword = Argon2.Hash("AdgangskodeTilSIR98"),
-                    Role = "Member"
-                },
-                new() {
-                    Email = "henborg@roskilde.dk",
-                    HashedPassword = Argon2.Hash("HNielsen123!"),
-                    Role = "Instructor"
-                },
-                new() {
-                    Email = "admin@roskilde.dk",
-                    HashedPassword = Argon2.Hash("AmkOFOod78#"),
-                    Role = "UserAdmin"
-                }
-            };
+            _context = context;
         }
 
-        public User? GetUser(string email)
+        public async Task<User?> GetUserAsync(string email)
         {
-            return Users.FirstOrDefault((User user) => user.Email.Equals(email));
+            return await _context.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(user => user.Email == email);
         }
     }
 }

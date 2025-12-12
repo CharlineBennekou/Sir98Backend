@@ -32,25 +32,34 @@ namespace Sir98Backend.Controllers
         [HttpPost("Login")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        public IActionResult Login([FromBody] UserCredentials credentials)
+        public async Task<IActionResult> Login([FromBody] UserCredentials credentials)
         {
             Console.WriteLine(credentials.Email);
-            if(IsPasswordValid(credentials.Password) == false)
+
+            if (!IsPasswordValid(credentials.Password))
             {
                 return Unauthorized("Invalid password");
             }
-            User user = _userRepo.GetUser(credentials.Email.ToLower());
-            if(user is null || user is default(User))
+
+            var user = await _userRepo.GetUserAsync(credentials.Email.ToLower());
+            if (user == null)
             {
                 return Unauthorized("User not found");
             }
 
-            if (Argon2.Verify(user.HashedPassword, credentials.Password) == false)
+            if (!Argon2.Verify(user.HashedPassword, credentials.Password))
             {
-                return Unauthorized("User not found");
+                return Unauthorized("Invalid password");
             }
-            string filepath = Environment.CurrentDirectory + "\\Keys\\JWToken key for signing.txt";
-            string keyForSigning = System.IO.File.ReadAllText(filepath);
+
+            string filepath = Path.Combine(
+                Environment.CurrentDirectory,
+                "Keys",
+                "JWToken key for signing.txt"
+            );
+
+            string keyForSigning = await System.IO.File.ReadAllTextAsync(filepath);
+
             return Ok($"Bearer {GenerateJWToken(user, keyForSigning)}");
         }
 
