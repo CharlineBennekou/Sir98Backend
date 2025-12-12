@@ -9,6 +9,8 @@ using Isopoh.Cryptography.Argon2;
 using Sir98Backend.Models.DataTransferObjects;
 using Newtonsoft.Json.Linq;
 using Microsoft.AspNetCore.RateLimiting;
+using Sir98Backend.Services;
+using System.Net.Mail;
 
 namespace Sir98Backend.Controllers
 {
@@ -20,11 +22,14 @@ namespace Sir98Backend.Controllers
         private readonly UserRepo _userRepo;
         private readonly TokenService _tokenService;
         private readonly EmailService _emailService;
-        public UserController(UserRepo userRepo, TokenService tokenService, EmailService emailService)
+        private readonly IConfiguration _configuration;
+
+        public UserController(UserRepo userRepo, TokenService tokenService, EmailService emailService, IConfiguration configuration)
         {
             _userRepo = userRepo ?? throw new ArgumentNullException(nameof(userRepo));
             _tokenService = tokenService ?? throw new ArgumentNullException(nameof(tokenService));
             _emailService = emailService ?? throw new ArgumentNullException(nameof(emailService));
+            _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
         }
 
         [HttpPost("Register")]
@@ -76,7 +81,7 @@ namespace Sir98Backend.Controllers
             {
                 return Unauthorized("User not found");
             }
-            string keyForSigning = builder.Configuration["JwtSettings:SigningKey"];
+            string keyForSigning = _configuration.GetValue<string>("JwtSettings:SigningKey");
             return Ok($"Bearer {GenerateJWToken(user, keyForSigning)}");
         }
 
