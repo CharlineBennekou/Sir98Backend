@@ -1,5 +1,6 @@
 ﻿using Isopoh.Cryptography.Argon2;
 using Sir98Backend.Models;
+using Sir98Backend.Models.DataTransferObjects;
 using System.Data;
 
 namespace Sir98Backend.Repository
@@ -7,9 +8,11 @@ namespace Sir98Backend.Repository
     public class UserRepo
     {
         private readonly ICollection<User> Users;
-
+        private readonly List<UserAwaitActivation> EmailsAwaitingActivation;
+        
         public UserRepo()
         {
+            EmailsAwaitingActivation = new List<UserAwaitActivation>();
             Users = new List<User>(){
                 new() {
                     Email = "bente@sørensen.com",
