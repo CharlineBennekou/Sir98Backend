@@ -18,15 +18,43 @@ namespace Sir98Backend.Controllers
     public class UserController : Controller
     {
         private readonly UserRepo _userRepo;
-        public UserController(UserRepo userRepo)
+        private readonly TokenService _tokenService;
+        private readonly EmailService _emailService;
+        public UserController(UserRepo userRepo, TokenService tokenService, EmailService emailService)
         {
-            _userRepo = userRepo;
+            _userRepo = userRepo ?? throw new ArgumentNullException(nameof(userRepo));
+            _tokenService = tokenService ?? throw new ArgumentNullException(nameof(tokenService));
+            _emailService = emailService ?? throw new ArgumentNullException(nameof(emailService));
         }
 
         [HttpPost("Register")]
-        public IActionResult RegisterAccount()
-        {
-            throw new Exception();
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public IActionResult RegisterAccount([FromBody] RegisterAccount registration)
+        { 
+            if (registration.Password != registration.PasswordRepeated)
+            {
+                return Unauthorized("Password does not match with repeated password");
+            }
+            User user = _userRepo.GetUser(registration.Email);
+            if(user is not null || user is not default(User))
+            {
+                return Unauthorized("User with that email already exist");
+            }
+            string activationToken = _tokenService.GenerateActivationToken();
+    
+            string hashedPassword = Argon2.Hash(registration.Password);
+    
+            _userRepo.RegisterUser(registration, activationToken);
+    
+            string link = $"{Request.Scheme}://{Request.Host}{Request.PathBase}/api/User/Activate/code={activationToken}";
+    
+            MailMessage test = _emailService.CreateEmail(registration.Email, "Test email", 
+                $"{link}"
+                );
+            _emailService.Send(test);
+    
+            return Ok("Email has been sent if you have an account");
         }
 
         [HttpPost("Login")]
@@ -34,7 +62,6 @@ namespace Sir98Backend.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public IActionResult Login([FromBody] UserCredentials credentials)
         {
-            Console.WriteLine(credentials.Email);
             if(IsPasswordValid(credentials.Password) == false)
             {
                 return Unauthorized("Invalid password");
@@ -49,8 +76,7 @@ namespace Sir98Backend.Controllers
             {
                 return Unauthorized("User not found");
             }
-            string filepath = Environment.CurrentDirectory + "\\Keys\\JWToken key for signing.txt";
-            string keyForSigning = System.IO.File.ReadAllText(filepath);
+            string keyForSigning = builder.Configuration["JwtSettings:SigningKey"];
             return Ok($"Bearer {GenerateJWToken(user, keyForSigning)}");
         }
 
@@ -88,17 +114,19 @@ namespace Sir98Backend.Controllers
             return tokenHandler.WriteToken(token);
         }
 
-        [HttpPost("ActivationLink")]
-        public IActionResult ActivationLink()
+        [HttpGet("Activate/code={code}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public IActionResult ActivationLink(string code)
         {
-            throw new Exception();
-        }
-
-
-        [HttpPost("ForgotPassword")]
-        public IActionResult SendForgotPassword()
-        {
-            throw new Exception();
-        }
+            try
+            {
+                _userRepo.ActivateUser(code);
+            } catch(Exception e)
+            {
+                return StatusCode(500, e.Message);
+            }
+            return Ok("User activated");
+        }    
     }
 }
