@@ -109,8 +109,11 @@ namespace Sir98Backend.Controllers
             {
                 return StatusCode(500, "No space for new image, too many images on server");
             }
-            using var fileStream = new FileStream(imagePath, FileMode.Create);
-            image.CopyToAsync(fileStream);
+            using (FileStream fileStream = new(imagePath, FileMode.Create))
+            {
+                image.CopyTo(fileStream);
+            }
+            
             return Ok($"{newFileName}{fileExtension}");
         }
     }
