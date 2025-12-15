@@ -12,8 +12,11 @@ namespace Sir98Backend.Data
         public DbSet<ChangedActivity> ChangedActivities { get; set; }
         public DbSet<Instructor> Instructors { get; set; }
 
-        public DbSet<User> Users { get; set; }
         public DbSet<PushSubscription> PushSubscriptions { get; set; }
+
+        public DbSet<User> Users { get; set; }
+        public DbSet<UserAwaitActivation> UsersAwaitingActivation { get; set; }
+
 
 
         // Not putting VapidConfig in use for now. Unsure if it is meant to go in db at all.
@@ -193,9 +196,36 @@ namespace Sir98Backend.Data
                     .HasForeignKey<ChangedActivity>(ca => ca.ActivityId)
                     .OnDelete(DeleteBehavior.Cascade);
             });
+
+            // -------- UserAwaitActivation --------
+            modelBuilder.Entity<UserAwaitActivation>(builder =>
+            {
+                builder.ToTable("UsersAwaitingActivation");
+
+                // Pick a key. ActivationCode is a good natural PK here.
+                builder.HasKey(x => x.ActivationCode);
+
+                builder.Property(x => x.ActivationCode)
+                       .IsRequired()
+                       .HasMaxLength(128);
+
+                builder.Property(x => x.Email)
+                       .IsRequired()
+                       .HasMaxLength(256);
+
+                builder.Property(x => x.HashedPassword)
+                       .IsRequired();
+
+                builder.Property(x => x.ExpirationDate)
+                       .IsRequired();
+
+                // Prevent duplicates (matches your old in-memory checks)
+                builder.HasIndex(x => x.Email).IsUnique();
+            });
+
         }
 
 
-}
+    }
 
 }
