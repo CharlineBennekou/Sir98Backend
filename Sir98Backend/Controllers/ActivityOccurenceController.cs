@@ -31,8 +31,8 @@ namespace Sir98Backend.Controllers
             [FromQuery] DateTimeOffset? from = null, //Defaults to now if not provided
             [FromQuery] int days = 7, //Defaults to 7 days if not provided
             [FromQuery] string? filter = null,
-            [FromQuery] string? userId = null,
-            [FromQuery] int? activityId = null)
+            [FromQuery] string? userId = null)
+           
         {
             if (days <= 0)
             
@@ -53,90 +53,12 @@ namespace Sir98Backend.Controllers
 
             var occurrences = _service.GetOccurrences(fromUtc, days, filter, userId).ToList();
 
-            // Hvis userId er angivet, marker occurrences baseret på brugerens subscriptions
-            //if (!string.IsNullOrWhiteSpace(userId))
-            //{
-            //    var subs = _subRepo.GetByUserId(userId).ToList();
-
-            //    foreach (var occ in occurrences)
-            //    {
-            //        occ.IsSubscribed = subs.Any(sub =>
-            //            (sub.AllOccurrences && sub.ActivityId == occ.ActivityId) ||
-            //            (!sub.AllOccurrences && sub.ActivityId == occ.ActivityId &&
-            //             sub.OriginalStartUtc.HasValue && occ.OriginalStartUtc.HasValue &&
-            //             sub.OriginalStartUtc.Value == occ.OriginalStartUtc.Value)
-            //        );
-            //    }
-            //}
-
-            if (activityId.HasValue)
-            {
-                occurrences = occurrences.Where(o => o.ActivityId == activityId.Value).ToList();
-            }
-
             return Ok(occurrences);
+
+
         }
 
 
-        //[HttpPost("subscribe")]
-        //public ActionResult Subscribe([FromBody] SubscribeRequestDto req)
-        //{
-        //    if (req == null || string.IsNullOrWhiteSpace(req.UserId) || req.ActivityId <= 0)
-        //        return BadRequest("userId and activityId are required.");
-
-        //    var subscription = new ActivitySubscription
-        //    {
-        //        UserId = req.UserId,
-        //        ActivityId = req.ActivityId,
-        //        OriginalStartUtc = req.OriginalStartUtc,
-        //        AllOccurrences = req.AllOccurrences
-        //    };
-
-        //    Console.WriteLine($"Subscribe called: user={subscription.UserId}, act={subscription.ActivityId}, original={subscription.OriginalStartUtc}, all={subscription.AllOccurrences}");
-
-        //    var created = _subRepo.Add(subscription);
-        //    if (created == null)
-        //    {
-        //        Console.WriteLine("Add returned null (duplicate or blocked).");
-        //        // duplicate eller kunne ikke oprettes
-        //        return Conflict(new { message = "Subscription already exists or could not be created." });
-        //    }
-
-        //    Console.WriteLine($"Created subscription id={created.Id}");
-        //    // Returner Created med det nye objekt
-        //    return Created($"/api/ActivitySubscription/{created.Id}", created);
-        //}
-
-        //[HttpPost("unsubscribe")]
-        //public IActionResult Unsubscribe([FromBody] SubscribeRequestDto req)
-        //{
-        //    if (req == null || string.IsNullOrWhiteSpace(req.UserId) || req.ActivityId <= 0)
-        //        return BadRequest("userId and activityId are required.");
-
-        //    // Hvis originalStartUtc er null => slet series-subscription, ellers slet single
-        //    var deleted = _subRepo.Delete(req.UserId, req.ActivityId, req.OriginalStartUtc);
-        //    if (!deleted) return NotFound("Subscription not found.");
-        //    return NoContent();
-
-        //}
-
-
-        ////var nowUtc = DateTimeOffset.UtcNow;
-        ////var occurrences = _service.GetOccurrences(nowUtc, days, null, null).ToList();
-
-        ////var subs = _subRepo.GetByUserId(userId).ToList();
-
-        //foreach (var occ in occurrences)
-        //{
-        //    occ.IsSubscribed = subs.Any(subcription =>
-        //    (subcription.AllOccurrences && subcription.ActivityId == occ.ActivityId) ||
-        //    (!subcription.AllOccurrences && 
-        //    subcription.ActivityId == occ.ActivityId 
-        //    && subcription.OriginalStartUtc == occ.OriginalStartUtc)
-        //    );
-        //}
-
-        //return Ok(occurrences);
     }
 
 

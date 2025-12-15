@@ -45,10 +45,7 @@ namespace Sir98Backend.Services
 
             bool filteredByMine = false;
 
-            //if (filter != null)
-            //{
-            //    (activities, filteredByMine) = ApplyFilters(activities, filter, userId);
-            //}
+            
 
             if (!string.IsNullOrWhiteSpace(filter))
             {
@@ -227,40 +224,6 @@ namespace Sir98Backend.Services
             }
         }
 
-        //private (List<Activity> activities, bool filteredByMine) ApplyFilters(
-        // List<Activity> activities,
-        // string filter,
-        // string? userId)
-        //{
-        //    bool filteredByMine = false;
-
-        //    if (string.IsNullOrWhiteSpace(filter))
-        //        return (activities, filteredByMine);
-
-        //    if (string.Equals(filter, "mine", StringComparison.OrdinalIgnoreCase) && userId != null)
-        //    {
-        //        filteredByMine = true;
-
-        //        var subscribedActivityIds = _activitySubsRepo.GetByUserId(userId)
-        //            .Select(s => s.ActivityId)
-        //            .ToHashSet();
-
-        //        var filtered = activities
-        //            .Where(a => subscribedActivityIds.Contains(a.Id))
-        //            .ToList();
-
-        //        return (filtered, filteredByMine);
-        //    }
-
-        //    var lowerFilter = filter.ToLowerInvariant();
-
-        //    var tagFiltered = activities
-        //        .Where(a => a.Tags != null &&
-        //                    a.Tags.Any(tag => tag.ToLowerInvariant().Contains(lowerFilter)))
-        //        .ToList();
-
-        //    return (tagFiltered, filteredByMine);
-        //}
 
 
 
@@ -276,13 +239,7 @@ namespace Sir98Backend.Services
                 return;
             }
 
-            //if (string.IsNullOrWhiteSpace(userId))
-            //{
-            //    // Ingen userId — ingen subscription marks.
-            //    foreach (var occurrence in result)
-            //        occurrence.IsSubscribed = false;
-            //    return;
-            //}
+            
 
 
             var subs = _subscriptionRepo.GetByUserId(userId)?.ToList() 

@@ -77,17 +77,7 @@ namespace Sir98Backend.Repository
             _subscriptions.Remove(subscription);
             return true;
 
-            /*  var existing = _subscriptions.FirstOrDefault(s =>
-                  s.UserId == userId &&
-                  s.ActivityId == activityId &&
-                  s.OriginalStartUtc == originalStartUtc
-              );
-
-              if (existing == null)
-                  return false;
-
-              _subscriptions.Remove(existing);
-              return true;*/
+            
         }
 
     }
