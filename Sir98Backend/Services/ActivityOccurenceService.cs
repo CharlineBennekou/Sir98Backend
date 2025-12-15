@@ -103,9 +103,8 @@ namespace Sir98Backend.Services
                 }
 
                 if (string.IsNullOrWhiteSpace(activity.Rrule)) //Rrule should never be null on a recurring activity. Will be skipped to avoid crashes.
-                {
                     continue;
-                }
+                
 
                 // For every Activity, generate its recurrences. For every activity and recurrence, check if theres a ChangedActivity and convert it to the Dto.
                 foreach (var (originalStartUtc, originalEndUtc) in
@@ -128,7 +127,7 @@ namespace Sir98Backend.Services
         /// Uses Ical.Net to expand the RRULE of a single Activity into UTC occurrences.
         /// </summary>
         private IEnumerable<(DateTimeOffset startUtc, DateTimeOffset endUtc)>
-       GenerateBaseOccurrences(Activity activity, DateTimeOffset fromUtc, DateTimeOffset toUtc)
+            GenerateBaseOccurrences(Activity activity, DateTimeOffset fromUtc, DateTimeOffset toUtc)
         {
             var fromLocal = TimeZoneInfo.ConvertTime(fromUtc, DanishZone).DateTime; //From today
             var toLocal = TimeZoneInfo.ConvertTime(toUtc, DanishZone).DateTime; //To today
@@ -229,13 +228,13 @@ namespace Sir98Backend.Services
 
 
 
-        private void SetToSubscribed(List<ActivityOccurrenceDto> result, bool filteredByMine, string userId)
+        private void SetToSubscribed(List<ActivityOccurrenceDto> occurrences, bool filteredByMine, string userId)
         {
             if (filteredByMine) //if UserId is provided and we are filtering by "mine", then result will only contain subscribed activities, so we can set all to true
             {
-                foreach (var occurrence in result)
-                
-                    occurrence.IsSubscribed = true;
+                foreach (var occ in occurrences)
+                    occ.IsSubscribed = true;
+
                 return;
             }
 
@@ -245,46 +244,59 @@ namespace Sir98Backend.Services
             var subs = _subscriptionRepo.GetByUserId(userId)?.ToList() 
                 ?? new List<ActivitySubscription>() ;
 
+            Console.WriteLine(
+                $"DEBUG subscriptions count = {subs.Count}");
 
-                var serieSubs = subs
-                    .Where(sub => sub.AllOccurrences)
-                    .Select(sub => sub.ActivityId)
-                    .ToHashSet();
 
-                var singleSubs = subs
-                    .Where(s => !s.AllOccurrences && s.OriginalStartUtc.HasValue)
-                    .ToLookup(s => (s.ActivityId, s.OriginalStartUtc.Value));
-
-            Console.WriteLine($"Debug SetToSubscribed: user= {userId} seriesCount={serieSubs.Count} singleCount= {singleSubs.Count}");
-
-                foreach (var occurrence in result)
+            foreach (var occ in occurrences)
                 {
+                occ.IsSubscribed = subs.Any(sub =>
+                {
+                    // Skal være samme aktivitet
+                    if (sub.ActivityId != occ.ActivityId)
+                        return false;
 
-                    if (serieSubs.Contains(occurrence.ActivityId))
+                    // Serie-subscription
+                    if (sub.AllOccurrences)
+                        return true;
+
+                    // Single occurrence
+                    if (sub.OriginalStartUtc.HasValue && occ.OriginalStartUtc.HasValue)
                     {
-                        occurrence.IsSubscribed = true;
-                        continue;
+                        return sub.OriginalStartUtc.Value.UtcDateTime
+                               == occ.OriginalStartUtc.Value.UtcDateTime;
                     }
 
-                    // else check single subscription match (activityId + originalStartUtc)
-                    if (occurrence.OriginalStartUtc.HasValue)
-                    {
-                        var key = (occurrence.ActivityId, occurrence.OriginalStartUtc.Value);
-                        occurrence.IsSubscribed = singleSubs.Contains(key);
-                    }
-                    else
-                    {
-                        occurrence.IsSubscribed = false;
-                    }
+                    return false;
+                });
 
-                    if (occurrence.ActivityId == 5)
-                    {
-                    Console.WriteLine($"Debug occ act05 original= {occurrence.OriginalStartUtc} isSub={occurrence.IsSubscribed}");
-
-
-                    }
+                // DEBUG – behold denne midlertidigt
+                if (occ.ActivityId == 5)
+                {
+                    Console.WriteLine(
+                        $"CHECK act=5 | occ={occ.OriginalStartUtc:o} | isSub={occ.IsSubscribed}");
                 }
-            
+
+
+
+              
+
+                //// else check single subscription match (activityId + originalStartUtc)
+                //if (occ.OriginalStartUtc.HasValue)
+                //{
+                //    var key = (occ.ActivityId,
+                //    occ.OriginalStartUtc.Value.UtcDateTime);
+
+                //    occ.IsSubscribed = singleSubs.Contains(key);
+                //}
+                //else
+                //{
+                //    occ.IsSubscribed = false;
+                //}
+
+                
+            }
+
 
         }
     }
