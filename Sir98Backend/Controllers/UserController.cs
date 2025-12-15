@@ -7,28 +7,59 @@ using System.Security.Claims;
 using System.Text;
 using Isopoh.Cryptography.Argon2;
 using Sir98Backend.Models.DataTransferObjects;
+using Newtonsoft.Json.Linq;
 using Microsoft.AspNetCore.RateLimiting;
+using Sir98Backend.Services;
+using System.Net.Mail;
 
 namespace Sir98Backend.Controllers
 {
     [ApiController]
     [EnableRateLimiting("userLoginRegisterForgot")]
-    [Route("api/[controller]")]
+    [Microsoft.AspNetCore.Mvc.Route("api/[controller]")]
     public class UserController : Controller
     {
         private readonly UserRepo _userRepo;
+        private readonly TokenService _tokenService;
+        private readonly EmailService _emailService;
+        private readonly IConfiguration _configuration;
 
-        public UserController(UserRepo userRepo)
+        public UserController(UserRepo userRepo, TokenService tokenService, EmailService emailService, IConfiguration configuration)
         {
-            _userRepo = userRepo;
+            _userRepo = userRepo ?? throw new ArgumentNullException(nameof(userRepo));
+            _tokenService = tokenService ?? throw new ArgumentNullException(nameof(tokenService));
+            _emailService = emailService ?? throw new ArgumentNullException(nameof(emailService));
+            _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
         }
 
         [HttpPost("Register")]
-        public async Task<IActionResult> RegisterAccount()
-        {
-            // Placeholder for future DB/email work
-            await Task.Yield();
-            throw new Exception();
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public IActionResult RegisterAccount([FromBody] RegisterAccount registration)
+        { 
+            if (registration.Password != registration.PasswordRepeated)
+            {
+                return Unauthorized("Password does not match with repeated password");
+            }
+            User user = _userRepo.GetUser(registration.Email);
+            if(user is not null || user is not default(User))
+            {
+                return Unauthorized("User with that email already exist");
+            }
+            string activationToken = _tokenService.GenerateActivationToken();
+    
+            string hashedPassword = Argon2.Hash(registration.Password);
+    
+            _userRepo.RegisterUser(registration, activationToken);
+    
+            string link = $"{Request.Scheme}://{Request.Host}{Request.PathBase}/api/User/Activate/code={activationToken}";
+    
+            MailMessage test = _emailService.CreateEmail(registration.Email, "Test email", 
+                $"{link}"
+                );
+            _emailService.Send(test);
+    
+            return Ok("Email has been sent if you have an account");
         }
 
         [HttpPost("Login")]
@@ -37,32 +68,19 @@ namespace Sir98Backend.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> Login([FromBody] UserCredentials credentials)
         {
-            if (credentials == null)
-                return BadRequest("Body is required.");
-
-            if (string.IsNullOrWhiteSpace(credentials.Email) || string.IsNullOrWhiteSpace(credentials.Password))
-                return BadRequest("Email and password are required.");
-
-            Console.WriteLine(credentials.Email);
-
-            if (!IsPasswordValid(credentials.Password))
+            if(IsPasswordValid(credentials.Password) == false)
+            {
                 return Unauthorized("Invalid password");
 
             var user = await _userRepo.GetUserAsync(credentials.Email.ToLower());
             if (user == null)
                 return Unauthorized("User not found");
 
-            if (!Argon2.Verify(user.HashedPassword, credentials.Password))
-                return Unauthorized("Invalid password");
-
-            string filepath = Path.Combine(
-                Environment.CurrentDirectory,
-                "Keys",
-                "JWToken key for signing.txt"
-            );
-
-            string keyForSigning = await System.IO.File.ReadAllTextAsync(filepath);
-
+            if (Argon2.Verify(user.HashedPassword, credentials.Password) == false)
+            {
+                return Unauthorized("User not found");
+            }
+            string keyForSigning = _configuration.GetValue<string>("JwtSettings:SigningKey");
             return Ok($"Bearer {GenerateJWToken(user, keyForSigning)}");
         }
 
@@ -73,26 +91,26 @@ namespace Sir98Backend.Controllers
 
         private string GenerateJWToken(User user, string JWTokenSigningKey)
         {
-            if (user is null)
-                throw new ArgumentNullException(nameof(user));
-
-            if (string.IsNullOrWhiteSpace(JWTokenSigningKey))
-                throw new ArgumentNullException(nameof(JWTokenSigningKey));
+            // authentication successful so generate jwt token
+            if(user is null || user is default(User))
+            {
+                throw new ArgumentNullException("user can not be null");
+            }
+            if(JWTokenSigningKey is null || JWTokenSigningKey is default(string))
+            {
+                throw new ArgumentNullException("Signing key can not be null");
+            }
 
             var key = Encoding.ASCII.GetBytes(JWTokenSigningKey);
 
             var tokenDescriptor = new SecurityTokenDescriptor
             {
-                Subject = new ClaimsIdentity(new[]
-                {
-                    new Claim(ClaimTypes.Name, user.Email),
-                    new Claim(ClaimTypes.Role, user.Role)
-                }),
+                Subject = new ClaimsIdentity([
+                    new Claim(ClaimTypes.Name, user.Email.ToString()),
+                    new Claim(ClaimTypes.Role, user.Role.ToString())
+                ]),
                 Expires = DateTime.UtcNow.AddYears(1),
-                SigningCredentials = new SigningCredentials(
-                    new SymmetricSecurityKey(key),
-                    SecurityAlgorithms.HmacSha256Signature
-                )
+                SigningCredentials = new(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
             };
 
             var tokenHandler = new JwtSecurityTokenHandler();
@@ -100,20 +118,19 @@ namespace Sir98Backend.Controllers
             return tokenHandler.WriteToken(token);
         }
 
-        [HttpPost("ActivationLink")]
-        public async Task<IActionResult> ActivationLink()
+        [HttpGet("Activate/code={code}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public IActionResult ActivationLink(string code)
         {
-            // Placeholder for future DB/email work
-            await Task.Yield();
-            throw new Exception();
-        }
-
-        [HttpPost("ForgotPassword")]
-        public async Task<IActionResult> SendForgotPassword()
-        {
-            // Placeholder for future DB/email work
-            await Task.Yield();
-            throw new Exception();
-        }
+            try
+            {
+                _userRepo.ActivateUser(code);
+            } catch(Exception e)
+            {
+                return StatusCode(500, e.Message);
+            }
+            return Ok("User activated");
+        }    
     }
 }
