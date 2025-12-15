@@ -1,9 +1,10 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using Sir98Backend.Models;
+using Sir98Backend.Repository.Interface;
 
 namespace Sir98Backend.Repository
 {
-    public class ActivitySubscriptionRepo
+    public class ActivitySubscriptionRepo : IActivitySubscriptionRepo
     {
         private readonly List<ActivitySubscription> _subscriptions = new();
         private int _nextId = 1;

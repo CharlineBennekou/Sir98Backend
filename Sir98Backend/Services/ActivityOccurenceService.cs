@@ -8,6 +8,7 @@ using Org.BouncyCastle.Security;
 using Sir98Backend.Models;
 using Sir98Backend.Models.DataTransferObjects;
 using Sir98Backend.Repository;
+using Sir98Backend.Repository.Interface;
 
 namespace Sir98Backend.Services
 {
@@ -15,18 +16,19 @@ namespace Sir98Backend.Services
     {
         private readonly ActivityRepo _activityRepo;
         private readonly ChangedActivityRepo _changedActivityRepo;
-        private readonly ActivitySubscriptionRepo _activitySubsRepo;
+        private readonly ActivitySubscriptionRepo _subscriptionRepo;
+        //private readonly IActivitySubscriptionRepo _subscriptionRepo;
 
         private static readonly TimeZoneInfo DanishZone =
             TimeZoneInfo.FindSystemTimeZoneById("Europe/Copenhagen");
 
         private const string DanishTzId = "Europe/Copenhagen";
 
-        public ActivityOccurrenceService(ActivityRepo activityRepo, ChangedActivityRepo changedActivityRepo, ActivitySubscriptionRepo activitySubRepo)
+        public ActivityOccurrenceService(ActivityRepo activityRepo, ChangedActivityRepo changedActivityRepo, ActivitySubscriptionRepo subscriptionrepo)
         {
             _activityRepo = activityRepo;
             _changedActivityRepo = changedActivityRepo;
-            _activitySubsRepo = activitySubRepo;
+            _subscriptionRepo = subscriptionrepo;
         }
         /// <summary>
         /// Gets all Activities and their recurrences from a specific date and x amount of days forward.
@@ -57,7 +59,7 @@ namespace Sir98Backend.Services
                 {
                     filteredByMine = true;
 
-                    var subscribedActivityIds = _activitySubsRepo.GetByUserId(userId)
+                    var subscribedActivityIds = _subscriptionRepo.GetByUserId(userId)
                         .Select(s => s.ActivityId)
                         .ToHashSet();
 
@@ -128,8 +130,8 @@ namespace Sir98Backend.Services
         /// <summary>
         /// Uses Ical.Net to expand the RRULE of a single Activity into UTC occurrences.
         /// </summary>
-     private IEnumerable<(DateTimeOffset startUtc, DateTimeOffset endUtc)>
-    GenerateBaseOccurrences(Activity activity, DateTimeOffset fromUtc, DateTimeOffset toUtc)
+        private IEnumerable<(DateTimeOffset startUtc, DateTimeOffset endUtc)>
+       GenerateBaseOccurrences(Activity activity, DateTimeOffset fromUtc, DateTimeOffset toUtc)
         {
             var fromLocal = TimeZoneInfo.ConvertTime(fromUtc, DanishZone).DateTime; //From today
             var toLocal = TimeZoneInfo.ConvertTime(toUtc, DanishZone).DateTime; //To today
@@ -144,7 +146,7 @@ namespace Sir98Backend.Services
             };
 
             calendarEvent.RecurrenceRules.Add(new RecurrencePattern(activity.Rrule)); //Adds the RRULE to the calendar event
-           
+
             var fromLocalCal = new CalDateTime(fromLocal, DanishTzId); //Converts to CalDateTime
             var toLocalCal = new CalDateTime(toLocal, DanishTzId); //Converts to CalDateTime
 
@@ -266,25 +268,66 @@ namespace Sir98Backend.Services
 
         private void SetToSubscribed(List<ActivityOccurrenceDto> result, bool filteredByMine, string userId)
         {
-            if (filteredByMine == true) //if UserId is provided and we are filtering by "mine", then result will only contain subscribed activities, so we can set all to true
+            if (filteredByMine) //if UserId is provided and we are filtering by "mine", then result will only contain subscribed activities, so we can set all to true
             {
                 foreach (var occurrence in result)
-                {
+                
                     occurrence.IsSubscribed = true;
-                }
                 return;
             }
-            else 
-            {
-            
-                var subscribedActivityIds = _activitySubsRepo.GetByUserId(userId)
-                    .Select(s => s.ActivityId)
+
+            //if (string.IsNullOrWhiteSpace(userId))
+            //{
+            //    // Ingen userId — ingen subscription marks.
+            //    foreach (var occurrence in result)
+            //        occurrence.IsSubscribed = false;
+            //    return;
+            //}
+
+
+            var subs = _subscriptionRepo.GetByUserId(userId)?.ToList() 
+                ?? new List<ActivitySubscription>() ;
+
+
+                var serieSubs = subs
+                    .Where(sub => sub.AllOccurrences)
+                    .Select(sub => sub.ActivityId)
                     .ToHashSet();
+
+                var singleSubs = subs
+                    .Where(s => !s.AllOccurrences && s.OriginalStartUtc.HasValue)
+                    .ToLookup(s => (s.ActivityId, s.OriginalStartUtc.Value));
+
+            Console.WriteLine($"Debug SetToSubscribed: user= {userId} seriesCount={serieSubs.Count} singleCount= {singleSubs.Count}");
+
                 foreach (var occurrence in result)
                 {
-                    occurrence.IsSubscribed = subscribedActivityIds.Contains(occurrence.ActivityId);
+
+                    if (serieSubs.Contains(occurrence.ActivityId))
+                    {
+                        occurrence.IsSubscribed = true;
+                        continue;
+                    }
+
+                    // else check single subscription match (activityId + originalStartUtc)
+                    if (occurrence.OriginalStartUtc.HasValue)
+                    {
+                        var key = (occurrence.ActivityId, occurrence.OriginalStartUtc.Value);
+                        occurrence.IsSubscribed = singleSubs.Contains(key);
+                    }
+                    else
+                    {
+                        occurrence.IsSubscribed = false;
+                    }
+
+                    if (occurrence.ActivityId == 5)
+                    {
+                    Console.WriteLine($"Debug occ act05 original= {occurrence.OriginalStartUtc} isSub={occurrence.IsSubscribed}");
+
+
+                    }
                 }
-             }
+            
 
         }
     }

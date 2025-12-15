@@ -5,8 +5,9 @@ using Microsoft.IdentityModel.Tokens;
 using Sir98Backend.Repository;
 using System.Text;
 using System.Threading.RateLimiting;
-using Sir98Backend.Services;
 using Sir98Backend.Controllers;
+using Sir98Backend.Services;
+using Sir98Backend.Repository.Interface;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,10 +18,17 @@ builder.Services.AddControllers();
 builder.Services.AddSingleton<ActivityRepo>(new ActivityRepo());
 builder.Services.AddSingleton<InstructorRepo>(new InstructorRepo());
 builder.Services.AddSingleton<ChangedActivityRepo>();
-builder.Services.AddSingleton<ActivitySubscriptionRepo>();
+//builder.Services.AddSingleton<ActivitySubscriptionRepo>();
 builder.Services.AddSingleton<UserRepo>();
+//builder.Services.AddScoped<ActivitySubscriptionService>();
+
 
 builder.Services.AddSingleton<ActivityOccurrenceService>();
+//builder.Services.AddSingleton<IActivitySubscriptionRepo, ActivitySubscriptionRepo> ();
+builder.Services.AddSingleton<ActivitySubscriptionRepo>();
+
+
+
 
 
 

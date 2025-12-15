@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Sir98Backend.Models;
+using Sir98Backend.Models.DataTransferObjects;
 using Sir98Backend.Repository;
 namespace Sir98Backend.Controllers
 {
@@ -39,6 +40,9 @@ namespace Sir98Backend.Controllers
             if (subscription.ActivityId <= 0) return BadRequest("ActivityId must be > than 0.");
 
             var created = _repository.Add(subscription);
+            if (created == null)
+                return Conflict(new { message = "Subscription already exists or could not be created." });
+
             return Created($"api/ActivitySubscription/{created.Id}", created);
 
 
@@ -86,6 +90,39 @@ namespace Sir98Backend.Controllers
              // 204 No Content
              return NoContent();*/
         }
+
+        [HttpPost("subscribe")]
+        public ActionResult Subscribe([FromBody] SubscribeRequestDto req)
+        {
+            if (req == null || string.IsNullOrWhiteSpace(req.UserId) || req.ActivityId <= 0)
+                return BadRequest("userId and activityId are required.");
+
+            var subscription = new ActivitySubscription
+            {
+                UserId = req.UserId,
+                ActivityId = req.ActivityId,
+                OriginalStartUtc = req.OriginalStartUtc,
+                AllOccurrences = req.AllOccurrences
+            };
+
+            var created = _repository.Add(subscription);
+            if (created == null)
+                return Conflict(new { message = "Subscription already exists or could not be created." });
+
+            return Created($"/api/ActivitySubscription/{created.Id}", created);
+        }
+
+        [HttpPost("unsubscribe")]
+        public IActionResult Unsubscribe([FromBody] SubscribeRequestDto req)
+        {
+            if (req == null || string.IsNullOrWhiteSpace(req.UserId) || req.ActivityId <= 0)
+                return BadRequest("userId and activityId are required.");
+
+            var deleted = _repository.Delete(req.UserId, req.ActivityId, req.OriginalStartUtc);
+            if (!deleted) return NotFound("Subscription not found.");
+            return NoContent();
+        }
+
 
     }
 }

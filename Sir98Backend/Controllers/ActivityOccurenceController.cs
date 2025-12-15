@@ -9,18 +9,17 @@ using System.Diagnostics.Eventing.Reader;
 using System.Security.Cryptography.X509Certificates;
 
 namespace Sir98Backend.Controllers
+
 {
     [ApiController]
     [Route("api/activity-occurrences")]
     public class ActivityOccurrencesController : ControllerBase
     {
         private readonly ActivityOccurrenceService _service;
-        private readonly ActivitySubscriptionRepo _subRepo;
 
-        public ActivityOccurrencesController(ActivityOccurrenceService service, ActivitySubscriptionRepo subRepo)
+        public ActivityOccurrencesController(ActivityOccurrenceService service)
         {
             _service = service;
-            _subRepo = subRepo;
         }
 
         /// <summary>
@@ -55,20 +54,20 @@ namespace Sir98Backend.Controllers
             var occurrences = _service.GetOccurrences(fromUtc, days, filter, userId).ToList();
 
             // Hvis userId er angivet, marker occurrences baseret på brugerens subscriptions
-            if (!string.IsNullOrWhiteSpace(userId))
-            {
-                var subs = _subRepo.GetByUserId(userId).ToList();
+            //if (!string.IsNullOrWhiteSpace(userId))
+            //{
+            //    var subs = _subRepo.GetByUserId(userId).ToList();
 
-                foreach (var occ in occurrences)
-                {
-                    occ.IsSubscribed = subs.Any(sub =>
-                        (sub.AllOccurrences && sub.ActivityId == occ.ActivityId) ||
-                        (!sub.AllOccurrences && sub.ActivityId == occ.ActivityId &&
-                         sub.OriginalStartUtc.HasValue && occ.OriginalStartUtc.HasValue &&
-                         sub.OriginalStartUtc.Value == occ.OriginalStartUtc.Value)
-                    );
-                }
-            }
+            //    foreach (var occ in occurrences)
+            //    {
+            //        occ.IsSubscribed = subs.Any(sub =>
+            //            (sub.AllOccurrences && sub.ActivityId == occ.ActivityId) ||
+            //            (!sub.AllOccurrences && sub.ActivityId == occ.ActivityId &&
+            //             sub.OriginalStartUtc.HasValue && occ.OriginalStartUtc.HasValue &&
+            //             sub.OriginalStartUtc.Value == occ.OriginalStartUtc.Value)
+            //        );
+            //    }
+            //}
 
             if (activityId.HasValue)
             {
@@ -79,53 +78,53 @@ namespace Sir98Backend.Controllers
         }
 
 
-        [HttpPost("subscribe")]
-        public ActionResult Subscribe([FromBody] SubscribeRequestDto req)
-        {
-            if (req == null || string.IsNullOrWhiteSpace(req.UserId) || req.ActivityId <= 0)
-                return BadRequest("userId and activityId are required.");
+        //[HttpPost("subscribe")]
+        //public ActionResult Subscribe([FromBody] SubscribeRequestDto req)
+        //{
+        //    if (req == null || string.IsNullOrWhiteSpace(req.UserId) || req.ActivityId <= 0)
+        //        return BadRequest("userId and activityId are required.");
 
-            var subscription = new ActivitySubscription
-            {
-                UserId = req.UserId,
-                ActivityId = req.ActivityId,
-                OriginalStartUtc = req.OriginalStartUtc,
-                AllOccurrences = req.AllOccurrences
-            };
+        //    var subscription = new ActivitySubscription
+        //    {
+        //        UserId = req.UserId,
+        //        ActivityId = req.ActivityId,
+        //        OriginalStartUtc = req.OriginalStartUtc,
+        //        AllOccurrences = req.AllOccurrences
+        //    };
 
-            Console.WriteLine($"Subscribe called: user={subscription.UserId}, act={subscription.ActivityId}, original={subscription.OriginalStartUtc}, all={subscription.AllOccurrences}");
+        //    Console.WriteLine($"Subscribe called: user={subscription.UserId}, act={subscription.ActivityId}, original={subscription.OriginalStartUtc}, all={subscription.AllOccurrences}");
 
-            var created = _subRepo.Add(subscription);
-            if (created == null)
-            {
-                Console.WriteLine("Add returned null (duplicate or blocked).");
-                // duplicate eller kunne ikke oprettes
-                return Conflict(new { message = "Subscription already exists or could not be created." });
-            }
+        //    var created = _subRepo.Add(subscription);
+        //    if (created == null)
+        //    {
+        //        Console.WriteLine("Add returned null (duplicate or blocked).");
+        //        // duplicate eller kunne ikke oprettes
+        //        return Conflict(new { message = "Subscription already exists or could not be created." });
+        //    }
 
-            Console.WriteLine($"Created subscription id={created.Id}");
-            // Returner Created med det nye objekt
-            return Created($"/api/ActivitySubscription/{created.Id}", created);
-        }
+        //    Console.WriteLine($"Created subscription id={created.Id}");
+        //    // Returner Created med det nye objekt
+        //    return Created($"/api/ActivitySubscription/{created.Id}", created);
+        //}
 
-        [HttpPost("unsubscribe")]
-        public IActionResult Unsubscribe([FromBody] SubscribeRequestDto req)
-        {
-            if (req == null || string.IsNullOrWhiteSpace(req.UserId) || req.ActivityId <= 0)
-                return BadRequest("userId and activityId are required.");
+        //[HttpPost("unsubscribe")]
+        //public IActionResult Unsubscribe([FromBody] SubscribeRequestDto req)
+        //{
+        //    if (req == null || string.IsNullOrWhiteSpace(req.UserId) || req.ActivityId <= 0)
+        //        return BadRequest("userId and activityId are required.");
 
-            // Hvis originalStartUtc er null => slet series-subscription, ellers slet single
-            var deleted = _subRepo.Delete(req.UserId, req.ActivityId, req.OriginalStartUtc);
-            if (!deleted) return NotFound("Subscription not found.");
-            return NoContent();
+        //    // Hvis originalStartUtc er null => slet series-subscription, ellers slet single
+        //    var deleted = _subRepo.Delete(req.UserId, req.ActivityId, req.OriginalStartUtc);
+        //    if (!deleted) return NotFound("Subscription not found.");
+        //    return NoContent();
 
-        }
+        //}
 
 
-        //var nowUtc = DateTimeOffset.UtcNow;
-        //var occurrences = _service.GetOccurrences(nowUtc, days, null, null).ToList();
+        ////var nowUtc = DateTimeOffset.UtcNow;
+        ////var occurrences = _service.GetOccurrences(nowUtc, days, null, null).ToList();
 
-        //var subs = _subRepo.GetByUserId(userId).ToList();
+        ////var subs = _subRepo.GetByUserId(userId).ToList();
 
         //foreach (var occ in occurrences)
         //{
