@@ -14,17 +14,67 @@ namespace Sir98Backend.Repository
             _context = context;
         }
 
-
+        /// <summary>
+        /// Returns all activities without including related entities. Write "Incl" methods to include related entities.
+        /// </summary>
+        /// <returns></returns>
         public async Task<List<Activity>> GetAllAsync()
+    => await _context.Activities
+        .AsNoTracking()
+        .ToListAsync();
+
+        /// <summary>
+        /// Includes Activity by its Id without including related entities. Write "Incl" methods to include related entities.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        public async Task<Activity?> GetByIdAsync(int id)
+            => await _context.Activities
+                .AsNoTracking()
+                .FirstOrDefaultAsync(a => a.Id == id);
+
+        /// <summary>
+        /// Includes all activities including their related Instructors.
+        /// </summary>
+        /// <returns></returns>
+        public async Task<List<Activity>> GetAllInclInstructorsAsync()
     => await _context.Activities
         .AsNoTracking()
         .Include(a => a.Instructors)
         .ToListAsync();
-
-        public async Task<Activity?> GetByIdAsync(int id)
+        /// <summary>
+        /// Includes Activity by its Id including related Instructors.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        public async Task<Activity?> GetByIdInclInstructorAsync(int id)
             => await _context.Activities
                 .AsNoTracking()
                 .Include(a => a.Instructors)
+                .FirstOrDefaultAsync(a => a.Id == id);
+
+        /// <summary>
+        /// Returns all activities including their related Instructors, ActivitySubscriptions and ChangedActivity.
+        /// </summary>
+        /// <returns></returns>
+        public async Task<List<Activity>> GetAllInclAllAsync()
+   => await _context.Activities
+       .AsNoTracking()
+       .Include(a => a.Instructors)
+       .Include(a => a.ActivitySubscriptions)
+       .Include(a => a.ChangedActivity)
+       .ToListAsync();
+        /// <summary>
+        /// Returns Activity by its Id including related Instructors, ActivitySubscriptions and ChangedActivity.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        public async Task<Activity?> GetByIdInclAllAsync(int id)
+            => await _context.Activities
+                .AsNoTracking()
+                .Include(a => a.Instructors)
+                .Include(a => a.ActivitySubscriptions)
+                .Include(a => a.ChangedActivity)
                 .FirstOrDefaultAsync(a => a.Id == id);
 
 

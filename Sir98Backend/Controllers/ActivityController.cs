@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Sir98Backend.Models;
 using Sir98Backend.Repository;
+using Sir98Backend.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace Sir98Backend.Controllers
 {
@@ -9,17 +11,32 @@ namespace Sir98Backend.Controllers
     public class ActivityController : ControllerBase
     {
         private readonly ActivityRepo _activityRepo;
+        private readonly AppDbContext _context;
 
-        public ActivityController(ActivityRepo activityRepo)
+        public ActivityController(ActivityRepo activityRepo, AppDbContext context)
         {
             _activityRepo = activityRepo;
+            _context = context; 
+        }
+
+        // GET: api/Activity/Context
+        [HttpGet("Context")]
+        public async Task<ActionResult<IEnumerable<Activity>>> GetAllContext()
+        {
+            var activities = await _context.Activities
+       .AsNoTracking()
+       .Include(a => a.Instructors)
+       .Include(a => a.ActivitySubscriptions)
+       .Include(a => a.ChangedActivity)
+       .ToListAsync();
+            return Ok(activities);
         }
 
         // GET: api/Activity
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Activity>>> GetAll()
         {
-            var activities = await _activityRepo.GetAllAsync();
+            var activities = await _activityRepo.GetAllInclAllAsync();
             return Ok(activities);
         }
 
