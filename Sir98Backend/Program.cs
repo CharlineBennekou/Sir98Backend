@@ -7,6 +7,7 @@ using Sir98Backend.Controllers;
 using Sir98Backend.Data;
 using Sir98Backend.Repository;
 using Sir98Backend.Services;
+using Sir98Backend.Interfaces;
 using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
@@ -34,6 +35,10 @@ builder.Services.AddScoped<InstructorRepo>();
 builder.Services.AddScoped<UserRepo>();
 
 builder.Services.AddScoped<ActivityOccurrenceService>();
+builder.Services.AddScoped<IUserService, UserService>();
+
+builder.Services.AddSingleton<EmailService>();
+builder.Services.AddSingleton<TokenService>();
 
 
 
