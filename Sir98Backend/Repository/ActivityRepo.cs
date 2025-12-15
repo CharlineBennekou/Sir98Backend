@@ -14,17 +14,19 @@ namespace Sir98Backend.Repository
             _context = context;
         }
 
-       
-        public async Task<List<Activity>> GetAllAsync()
-            => await _context.Activities
-                .AsNoTracking()
-                .ToListAsync();
 
-        
+        public async Task<List<Activity>> GetAllAsync()
+    => await _context.Activities
+        .AsNoTracking()
+        .Include(a => a.Instructors)
+        .ToListAsync();
+
         public async Task<Activity?> GetByIdAsync(int id)
             => await _context.Activities
                 .AsNoTracking()
+                .Include(a => a.Instructors)
                 .FirstOrDefaultAsync(a => a.Id == id);
+
 
         public async Task<Activity> AddAsync(Activity activity)
         {
