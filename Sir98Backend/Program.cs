@@ -106,6 +106,15 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
+//Deletes and recreates database on startup. remove later.
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.EnsureDeleted();
+    db.Database.EnsureCreated();
+}
+
+
 await DbSeeder.SeedAsync(app); //Seed the database
 
 // Configure the HTTP request pipeline.
