@@ -5,8 +5,6 @@ namespace Sir98Backend.Models.DataTransferObjects
     public class ActivityOccurrenceDto
     {
         public int ActivityId { get; set; }
-        public string ActivityName { get; set; } = string.Empty;
-
         public bool IsSubscribed{ get; set; }
 
         /// <summary>
@@ -34,7 +32,6 @@ namespace Sir98Backend.Models.DataTransferObjects
 
         public bool Cancelled { get; set; }
 
-       // public bool isSubscribed { get; set; }
     }
 
 }

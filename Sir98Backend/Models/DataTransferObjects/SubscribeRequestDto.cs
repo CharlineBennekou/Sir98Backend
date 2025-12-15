@@ -6,6 +6,5 @@
         public int ActivityId { get; set; }
         public DateTimeOffset? OriginalStartUtc { get; set; }
         public bool AllOccurrences { get; set; }
-        //public string? ActivityName { get; set; }
     }
 }

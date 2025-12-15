@@ -31,40 +31,7 @@ namespace Sir98Backend.Controllers
             return Ok(result);
         }
 
-        // POST: api/ActivitySubscription
-        [HttpPost]
-        public ActionResult<ActivitySubscription> Post([FromBody] ActivitySubscription subscription)
-        {
-            if (subscription == null) return BadRequest("Body is required.");
-            if (string.IsNullOrWhiteSpace(subscription.UserId)) return BadRequest("UserId is required.");
-            if (subscription.ActivityId <= 0) return BadRequest("ActivityId must be > than 0.");
-
-            var created = _repository.Add(subscription);
-            if (created == null)
-                return Conflict(new { message = "Subscription already exists or could not be created." });
-
-            return Created($"api/ActivitySubscription/{created.Id}", created);
-
-
-
-            
-
-        }
-
-        [HttpDelete]
-        public IActionResult Delete([FromBody] ActivitySubscription sub)
-        {
-            if (sub == null)
-                return BadRequest("Body is required.");
-
-            var deleted = _repository.Delete(sub.UserId, sub.ActivityId, sub.OriginalStartUtc);
-            if (!deleted)
-                return NotFound("Subscription not found.");
-            return NoContent();
-
-           
-        }
-
+        
         [HttpPost("subscribe")]
         public ActionResult Subscribe([FromBody] SubscribeRequestDto req)
         {
