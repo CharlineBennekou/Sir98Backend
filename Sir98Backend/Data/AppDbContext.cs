@@ -1,0 +1,201 @@
+﻿using Microsoft.EntityFrameworkCore;
+using Sir98Backend.Models;
+
+namespace Sir98Backend.Data
+{
+    public class AppDbContext : DbContext
+    {
+        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+
+        public DbSet<Activity> Activities { get; set; }
+        public DbSet<ActivitySubscription> ActivitySubscriptions { get; set; }
+        public DbSet<ChangedActivity> ChangedActivities { get; set; }
+        public DbSet<Instructor> Instructors { get; set; }
+
+        public DbSet<User> Users { get; set; }
+        public DbSet<PushSubscription> PushSubscriptions { get; set; }
+
+
+        // Not putting VapidConfig in use for now. Unsure if it is meant to go in db at all.
+        //public DbSet<VapidConfig> VapidConfigs { get; set; }
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+
+            // -------- Activity --------
+            modelBuilder.Entity<Activity>(builder =>
+            {
+                builder.ToTable("Activities");
+
+                builder.HasKey(a => a.Id);
+
+                builder.Property(a => a.Title)
+                       .IsRequired()
+                       .HasMaxLength(200);
+
+                builder.Property(a => a.Address)
+                       .IsRequired()
+                       .HasMaxLength(300);
+
+                builder.Property(a => a.Image)
+                       .HasMaxLength(500);
+
+                builder.Property(a => a.Link)
+                       .HasMaxLength(500);
+
+                builder.Property(a => a.Tag)
+                       .HasMaxLength(100);
+
+                builder.Property(a => a.Description)
+                       .HasMaxLength(250);
+
+                builder.Property(a => a.StartUtc)
+                       .IsRequired();
+
+                builder.Property(a => a.EndUtc)
+                       .IsRequired();
+
+                builder.Property(a => a.IsRecurring)
+                       .IsRequired();
+
+                builder.Property(a => a.Cancelled)
+                       .IsRequired();
+
+                //Activity <-> Instructor
+                builder
+                    .HasMany(a => a.Instructors)
+                    .WithMany(i => i.Activities)
+                    .UsingEntity(j =>
+                        j.ToTable("ActivityInstructors")); // join table name
+
+                //Activity 1 -> * ActivitySubscription
+                builder
+                    .HasMany(a => a.ActivitySubscriptions)
+                    .WithOne(s => s.Activity)
+                    .HasForeignKey(s => s.ActivityId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                // 0 or 1 ChangedActivity
+                builder
+                    .HasOne(a => a.ChangedActivity)
+                    .WithOne(ca => ca.Activity)
+                    .HasForeignKey<ChangedActivity>(ca => ca.ActivityId)
+                    .IsRequired(false);
+            });
+
+            // -------- ActivitySubscription --------
+            modelBuilder.Entity<ActivitySubscription>(builder =>
+            {
+                builder.ToTable("ActivitySubscriptions");
+
+                builder.HasKey(s => s.Id);
+
+                builder.Property(s => s.UserId)
+                       .IsRequired();
+
+                builder.Property(s => s.OriginalStartUtc)
+                       .IsRequired();
+
+                // each subscription belongs to exactly one user
+                builder
+                    .HasOne(s => s.User)
+                    .WithMany(u => u.ActivitySubscriptions)
+                    .HasForeignKey(s => s.UserId)
+                    .HasPrincipalKey(u => u.Email)   // User.Email is the PK
+                    .OnDelete(DeleteBehavior.Cascade);
+
+
+                // prevent duplicate subscription for same occurrence
+                builder
+                    .HasIndex(s => new { s.UserId, s.ActivityId, s.OriginalStartUtc })
+                    .IsUnique();
+            });
+
+            // -------- Instructor --------
+            modelBuilder.Entity<Instructor>(builder =>
+            {
+                builder.ToTable("Instructors");
+
+                builder.HasKey(i => i.Id);
+
+                builder.Property(i => i.Email)
+                       .IsRequired()
+                       .HasMaxLength(100);
+
+                builder.Property(i => i.Number)
+                       .IsRequired()
+                       .HasMaxLength(100);
+
+                builder.Property(i => i.FirstName)
+                       .IsRequired()
+                       .HasMaxLength(100);
+
+                builder.Property(i => i.Image)
+                       .IsRequired()
+                       .HasMaxLength(100);
+
+                // many-to-many with activities configured in Activity entity
+            });
+
+            // -------- User --------
+            modelBuilder.Entity<User>(builder =>
+            {
+                builder.ToTable("Users");
+
+                builder.HasKey(u => u.Email); // string PK
+
+                builder.Property(u => u.Email)
+                       .IsRequired()
+                       .HasMaxLength(256);
+
+                builder.Property(u => u.HashedPassword)
+                       .IsRequired();
+
+                builder.Property(u => u.Role)
+                       .IsRequired()
+                       .HasMaxLength(50);
+            });
+
+            // -------- ChangedActivity --------
+            modelBuilder.Entity<ChangedActivity>(builder =>
+            {
+                builder.ToTable("ChangedActivities");
+
+                builder.HasKey(ca => ca.Id);
+
+                builder.Property(ca => ca.ActivityId)
+                       .IsRequired();
+
+                //All these nullable props should mirror MaxLength of Activity props
+
+                builder.Property(ca => ca.OriginalStartUtc)
+                       .IsRequired();
+
+                builder.Property(ca => ca.IsCancelled)
+                       .IsRequired();
+
+                builder.Property(ca => ca.NewTitle)
+                       .HasMaxLength(200);
+
+                builder.Property(ca => ca.NewDescription)
+                       .HasMaxLength(250);
+
+                builder.Property(ca => ca.NewAddress)
+                       .HasMaxLength(300);
+
+                builder.Property(ca => ca.NewTag)
+                       .HasMaxLength(100);
+
+                // For each ChangedActivity: exactly 1 Activity
+                builder
+                    .HasOne(ca => ca.Activity)
+                    .WithOne(a => a.ChangedActivity)
+                    .HasForeignKey<ChangedActivity>(ca => ca.ActivityId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+        }
+
+
+}
+
+}

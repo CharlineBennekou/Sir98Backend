@@ -1,31 +1,39 @@
-﻿using Sir98Backend.Models;
+﻿using Microsoft.EntityFrameworkCore;
+using Sir98Backend.Data;
+using Sir98Backend.Models;
 
 namespace Sir98Backend.Repository
 {
     public class ActivitySubscriptionRepo
     {
-        private readonly List<ActivitySubscription> _subscriptions = new();
-        private int _nextId = 1;
+        private readonly AppDbContext _context;
 
-        public IEnumerable<ActivitySubscription> GetAll()
+        public ActivitySubscriptionRepo(AppDbContext context)
         {
-            return _subscriptions;
+            _context = context;
         }
 
-        public IEnumerable<ActivitySubscription> GetByUserId(string userId)
+        public async Task<IEnumerable<ActivitySubscription>> GetAllAsync()
         {
-            return _subscriptions
+            return await _context.ActivitySubscriptions
+                .AsNoTracking()
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<ActivitySubscription>> GetByUserIdAsync(string userId)
+        {
+            return await _context.ActivitySubscriptions
+                .AsNoTracking()
                 .Where(s => s.UserId == userId)
-                .ToList();
+                .ToListAsync();
         }
 
-        public ActivitySubscription Add(ActivitySubscription subscription)
+        public async Task<ActivitySubscription?> AddAsync(ActivitySubscription subscription)
         {
             if (subscription == null)
                 throw new ArgumentNullException(nameof(subscription));
 
-            // Check if user is already subscribed to this activity at this time
-            var alreadySubscribed = _subscriptions.Any(s =>
+            var alreadySubscribed = await _context.ActivitySubscriptions.AnyAsync(s =>
                 s.UserId == subscription.UserId &&
                 s.ActivityId == subscription.ActivityId &&
                 s.OriginalStartUtc == subscription.OriginalStartUtc
@@ -34,15 +42,15 @@ namespace Sir98Backend.Repository
             if (alreadySubscribed)
                 return null;
 
-            subscription.Id = _nextId++;
-            _subscriptions.Add(subscription);
+            _context.ActivitySubscriptions.Add(subscription);
+            await _context.SaveChangesAsync();
 
             return subscription;
         }
 
-        public bool Delete(string userId, int activityId, DateTimeOffset originalStartUtc)
+        public async Task<bool> DeleteAsync(string userId, int activityId, DateTimeOffset originalStartUtc)
         {
-            var existing = _subscriptions.FirstOrDefault(s =>
+            var existing = await _context.ActivitySubscriptions.FirstOrDefaultAsync(s =>
                 s.UserId == userId &&
                 s.ActivityId == activityId &&
                 s.OriginalStartUtc == originalStartUtc
@@ -51,10 +59,10 @@ namespace Sir98Backend.Repository
             if (existing == null)
                 return false;
 
-            _subscriptions.Remove(existing);
+            _context.ActivitySubscriptions.Remove(existing);
+            await _context.SaveChangesAsync();
+
             return true;
         }
-
     }
 }
-

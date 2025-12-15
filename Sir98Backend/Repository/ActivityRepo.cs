@@ -1,212 +1,124 @@
 ﻿using Sir98Backend.Models;
 using System.Xml.Linq;
+using Sir98Backend.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace Sir98Backend.Repository
 {
     public class ActivityRepo
     {
-        private List<Activity> _activity = new();
-        private int _nextId = 1;
+        private readonly AppDbContext _context;
 
-        private static readonly TimeZoneInfo DanishTimeZone =
-            TimeZoneInfo.FindSystemTimeZoneById("Europe/Copenhagen");
-
-
-
-        public ActivityRepo()
+        public ActivityRepo(AppDbContext context)
         {
-
-            var instructor1 = new Instructor
-            {
-                Id = 1,
-                Email = "",
-                Number = "",
-                FirstName = "Sarah",
-                Image = ""
-            };
-
-            var instructor2 = new Instructor
-            {
-                Id = 2,
-                Email = "larsboh@roskilde.dk",
-                Number = "24629361",
-                FirstName = "Lars",
-                Image = "hansBillede.png"
-            };
-
-            DateTimeOffset DkLocal(int year, int month, int day, int hour, int minute) //Will be deleted once we no longer use mockdata
-            {
-                var local = new DateTime(year, month, day, hour, minute, 0, DateTimeKind.Unspecified);
-                var utc = TimeZoneInfo.ConvertTimeToUtc(local, DanishTimeZone);
-                return new DateTimeOffset(utc, TimeSpan.Zero);
-            }
-
-
-
-
-            _activity = new List<Activity>();
-            // --- Badminton – Wednesday 16:30–18:00 DK time ---
-            Add(new Activity
-            {
-                Title = "Badminton",
-                StartUtc = DkLocal(2025, 12, 3, 16, 30),
-                EndUtc = DkLocal(2025, 12, 3, 18, 00),
-                Address = "Hedegårdene Skole, Københavnsvej 34, 4000 Roskilde",
-                Image = "badminton.png",
-                Link = "https://if-sir98.dk/#badminton",
-                Cancelled = false,
-                Description = "Badmintontræning for alle niveauer.",
-                IsRecurring = true,
-                Tags = new List<string> { "Træning", "Cirkeltræning" },
-                Rrule = "FREQ=WEEKLY;BYDAY=WE"
-            });
-
-            // --- Cirkeltræning – Wednesday 14:15–15:00 DK time ---
-            Add(new Activity
-            {
-                Title = "Cirkeltræning",
-                StartUtc = DkLocal(2025, 12, 3, 14, 15),
-                EndUtc = DkLocal(2025, 12, 3, 15, 00),
-                Address = "RMI, Store Møllevej 5, 4000 Roskilde",
-                Image = "cirkeltraening.png",
-                Link = "https://if-sir98.dk/#cirkeltr%C3%A6ning",
-                Cancelled = false,
-                Instructors = new List<Instructor> { instructor1, instructor2 },
-                Description = "Cirkeltræning med fokus på hele kroppen.",
-                Tags = new List<string> { "Træning", "Cirkeltræning" },
-                IsRecurring = true,
-                Rrule = "FREQ=WEEKLY;BYDAY=WE"
-            });
-            // --- Cirkeltræning – Friday 10:15–11:00 DK time ---
-            Add(new Activity
-            {
-                Title = "Cirkeltræning",
-                StartUtc = DkLocal(2025, 12, 5, 10, 15),
-                EndUtc = DkLocal(2025, 12, 5, 11, 00),
-                Address = "RMI, Store Møllevej 5, 4000 Roskilde",
-                Image = "cirkeltraening.png",
-                Link = "https://if-sir98.dk/#cirkeltr%C3%A6ning",
-                Cancelled = false,
-                Instructors = new List<Instructor> { instructor2 },
-                Description = "Formiddags-cirkeltræning.",
-                Tags = new List<string> { "Træning", "Cirkeltræning" },
-                IsRecurring = true,
-                Rrule = "FREQ=WEEKLY;BYDAY=FR"
-            });
-
-            // --- Styrke og sundhedstræning – Monday 14:30–16:00 DK time ---
-            Add(new Activity
-            {
-                Title = "Styrke og sundhedstræning",
-                StartUtc = DkLocal(2025, 12, 1, 14, 30),
-                EndUtc = DkLocal(2025, 12, 1, 16, 00),
-                Address = "RMI, Store Møllevej 5, 4000 Roskilde",
-                Image = "styrke.png",
-                Link = "https://if-sir98.dk/#styrke-og-sundhedstr%C3%A6ning",
-                Cancelled = false,
-                Description = "Åbent i træningscenteret. Ingen instruktør.",
-                Tags = new List<string> { "Træning" },
-                IsRecurring = true,
-                Rrule = "FREQ=WEEKLY;BYDAY=MO"
-            });
-
-            // --- Styrke og sundhedstræning – Wednesday 14:00–16:00 DK time ---
-            Add(new Activity
-            {
-                Title = "Styrke og sundhedstræning",
-                StartUtc = DkLocal(2025, 12, 3, 14, 00),
-                EndUtc = DkLocal(2025, 12, 3, 16, 00),
-                Address = "RMI, Store Møllevej 5, 4000 Roskilde",
-                Image = "styrke.png",
-                Link = "https://if-sir98.dk/#styrke-og-sundhedstr%C3%A6ning",
-                Cancelled = false,
-                Description = "Åbent i træningscenteret. Ingen instruktør.",
-                Tags = new List<string> { "Træning" },
-                IsRecurring = true,
-                Rrule = "FREQ=WEEKLY;BYDAY=WE"
-            });
-
-            // --- Styrke og sundhedstræning – Friday 10:00–12:00 DK time ---
-            Add(new Activity
-            {
-                Title = "Styrke og sundhedstræning",
-                StartUtc = DkLocal(2025, 12, 5, 10, 00),
-                EndUtc = DkLocal(2025, 12, 5, 12, 00),
-                Address = "RMI, Store Møllevej 5, 4000 Roskilde",
-                Image = "styrke.png",
-                Link = "https://if-sir98.dk/#styrke-og-sundhedstr%C3%A6ning",
-                Cancelled = false,
-                Description = "Åbent i træningscenteret. Ingen instruktør.",
-                Tags = new List<string> { "Træning" },
-                IsRecurring = true,
-                Rrule = "FREQ=WEEKLY;BYDAY=FR"
-            });
-
-            Add(new Activity
-            {
-                Title = "BrugerTests",
-                StartUtc = DkLocal(2025, 12, 3, 14, 15),
-                EndUtc = DkLocal(2025, 12, 3, 15, 00),
-                Address = "RMI, Store Møllevej 5, 4000 Roskilde",
-                Image = "tests.png",
-                Link = "https://if-sir98.dk/#styrke-og-sundhedstr%C3%A6ning",
-                Cancelled = false,
-                Description = "Åbent i træningscenteret. Ingen instruktør.",
-                Tags = new List<string> { "Træning" },
-                IsRecurring = false,
-                
-            });
-
+            _context = context;
         }
 
-        public List<Activity> GetAll()
-        {
-            return _activity;
-        }
+        /// <summary>
+        /// Returns all activities without including related entities. Write "Incl" methods to include related entities.
+        /// </summary>
+        /// <returns></returns>
+        public async Task<List<Activity>> GetAllAsync()
+    => await _context.Activities
+        .AsNoTracking()
+        .ToListAsync();
 
-        public Activity? GetById(int id)
-        {
-            return _activity.Find(e => e.Id == id);
-        }
+        /// <summary>
+        /// Includes Activity by its Id without including related entities. Write "Incl" methods to include related entities.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        public async Task<Activity?> GetByIdAsync(int id)
+            => await _context.Activities
+                .AsNoTracking()
+                .FirstOrDefaultAsync(a => a.Id == id);
 
-        public Activity Add(Activity activity)
+        /// <summary>
+        /// Includes all activities including their related Instructors.
+        /// </summary>
+        /// <returns></returns>
+        public async Task<List<Activity>> GetAllInclInstructorsAsync()
+    => await _context.Activities
+        .AsNoTracking()
+        .Include(a => a.Instructors)
+        .ToListAsync();
+        /// <summary>
+        /// Includes Activity by its Id including related Instructors.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        public async Task<Activity?> GetByIdInclInstructorAsync(int id)
+            => await _context.Activities
+                .AsNoTracking()
+                .Include(a => a.Instructors)
+                .FirstOrDefaultAsync(a => a.Id == id);
+
+        /// <summary>
+        /// Returns all activities including their related Instructors, ActivitySubscriptions and ChangedActivity.
+        /// </summary>
+        /// <returns></returns>
+        public async Task<List<Activity>> GetAllInclAllAsync()
+   => await _context.Activities
+       .AsNoTracking()
+       .Include(a => a.Instructors)
+       .Include(a => a.ActivitySubscriptions)
+       .Include(a => a.ChangedActivity)
+       .ToListAsync();
+        /// <summary>
+        /// Returns Activity by its Id including related Instructors, ActivitySubscriptions and ChangedActivity.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        public async Task<Activity?> GetByIdInclAllAsync(int id)
+            => await _context.Activities
+                .AsNoTracking()
+                .Include(a => a.Instructors)
+                .Include(a => a.ActivitySubscriptions)
+                .Include(a => a.ChangedActivity)
+                .FirstOrDefaultAsync(a => a.Id == id);
+
+
+        public async Task<Activity> AddAsync(Activity activity)
         {
-            activity.Id = _nextId++;
-            _activity.Add(activity);
+            _context.Activities.Add(activity);
+            await _context.SaveChangesAsync();
             return activity;
         }
 
-        public Activity? Delete(int id)
+        public async Task<Activity?> DeleteAsync(int id)
         {
-            var activity = GetById(id);
-            if (activity == null)
-            {
-                return null;
-            }
-            _activity.Remove(activity);
-            return activity;
+            var existing = await _context.Activities
+                .FirstOrDefaultAsync(a => a.Id == id);
+
+            if (existing == null) return null;
+
+            _context.Activities.Remove(existing);
+            await _context.SaveChangesAsync();
+            return existing;
         }
 
-        public Activity? Update(int id, Activity activity)
+        public async Task<Activity?> UpdateAsync(int id, Activity activity)
         {
-            Activity? existingActivity = GetById(id);
-            if (existingActivity == null)
-            {
-                return null;
-            }
-            existingActivity.Title = activity.Title;
-            existingActivity.StartUtc = activity.StartUtc;
-            existingActivity.EndUtc = activity.EndUtc;
-            existingActivity.Address = activity.Address;
-            existingActivity.Image = activity.Image;
-            existingActivity.Link = activity.Link;
-            existingActivity.Cancelled = activity.Cancelled;
-            existingActivity.Description = activity.Description;
-            existingActivity.Instructors = activity.Instructors;
-            existingActivity.Tags = activity.Tags;
-            existingActivity.IsRecurring = activity.IsRecurring;
-            existingActivity.Rrule = activity.Rrule;
-            return existingActivity;
+            var existing = await _context.Activities
+                .FirstOrDefaultAsync(a => a.Id == id);
+
+            if (existing == null) return null;
+
+            existing.Title = activity.Title;
+            existing.StartUtc = activity.StartUtc;
+            existing.EndUtc = activity.EndUtc;
+            existing.Address = activity.Address;
+            existing.Image = activity.Image;
+            existing.Link = activity.Link;
+            existing.Cancelled = activity.Cancelled;
+            existing.Description = activity.Description;
+            existing.Instructors = activity.Instructors;
+            existing.Tag = activity.Tag;
+            existing.IsRecurring = activity.IsRecurring;
+            existing.Rrule = activity.Rrule;
+
+            await _context.SaveChangesAsync();
+            return existing;
         }
     }
 }

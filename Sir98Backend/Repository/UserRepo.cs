@@ -1,4 +1,5 @@
-﻿using Isopoh.Cryptography.Argon2;
+﻿using Microsoft.EntityFrameworkCore;
+using Sir98Backend.Data;
 using Sir98Backend.Models;
 using Sir98Backend.Models.DataTransferObjects;
 using System.Data;
@@ -7,6 +8,9 @@ namespace Sir98Backend.Repository
 {
     public class UserRepo
     {
+        private readonly AppDbContext _context;
+
+        public UserRepo(AppDbContext context)
         private readonly ICollection<User> Users;
         private readonly List<UserAwaitActivation> EmailsAwaitingActivation;
         
@@ -30,11 +34,14 @@ namespace Sir98Backend.Repository
                     Role = "UserAdmin"
                 }
             };
+            _context = context;
         }
 
-        public User? GetUser(string email)
+        public async Task<User?> GetUserAsync(string email)
         {
-            return Users.FirstOrDefault((User user) => user.Email.Equals(email));
+            return await _context.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(user => user.Email == email);
         }
 
         public void RegisterUser(RegisterAccount newUser, string activationCode)
