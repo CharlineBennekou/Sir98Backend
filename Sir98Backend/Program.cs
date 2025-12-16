@@ -37,7 +37,8 @@ builder.Services.AddScoped<UserRepo>();
 
 //services
 builder.Services.AddScoped<ActivityOccurrenceService>();
-builder.Services.AddScoped<ActivityService>();  
+builder.Services.AddScoped<ActivityService>();
+builder.Services.AddSingleton<ActivityNotificationPayloadBuilder>();
 builder.Services.AddScoped<IPushSubscriptionService, PushSubscriptionService>();
 builder.Services.AddScoped<IPushSender, PushSender>();
 builder.Services.AddScoped<NotificationService>();

@@ -8,11 +8,13 @@ namespace Sir98Backend.Services
     {
         private readonly AppDbContext _context;
         private readonly NotificationService _notificationService;
+        private readonly ActivityNotificationPayloadBuilder _payloadBuilder;
 
-        public ActivityService(AppDbContext context, NotificationService notificationService)
+        public ActivityService(AppDbContext context, NotificationService notificationService, ActivityNotificationPayloadBuilder payloadBuilder)
         {
             _context = context;
             _notificationService = notificationService;
+            _payloadBuilder = payloadBuilder;
         }
 
 
@@ -74,12 +76,7 @@ namespace Sir98Backend.Services
             if (updated == null)
                 return null;
 
-            var payload = new NotificationPayload
-            {
-                Title = $"{updated.Title} er blevet ændret.",
-                Body = $"{updated.Title} på x dato er blevet ændret. Klik for at se mere.",
-                Url = "http://localhost:5173/account-settings"
-            };
+            var payload = _payloadBuilder.BuildSeriesChange(updated);
 
             await _notificationService.NotifyUsersAboutSeriesChangeAsync(updated.Id, payload);
 
