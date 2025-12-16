@@ -40,6 +40,8 @@ namespace Sir98Backend.Services
             var awaiting = await _context.UsersAwaitingActivation.AnyAsync(a => a.Email == email);
             var codeInUse = await _context.UsersAwaitingActivation.AnyAsync(a => a.ActivationCode == activationCode);
 
+            Console.WriteLine(alreadyUser + " " + awaiting + " " + codeInUse);
+
             if (alreadyUser || awaiting || codeInUse)
                 throw new Exception("Unable to process registration request.");
 

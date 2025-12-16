@@ -63,8 +63,9 @@ namespace Sir98Backend.Controllers
                 );
                 _emailService.Send(msg);
             }
-            catch
+            catch(Exception e)
             {
+                Console.WriteLine(e);
                 // Intentionally swallow details: still return generic response
                 // (You should log the exception internally)
             }

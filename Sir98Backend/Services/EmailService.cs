@@ -12,10 +12,12 @@ namespace Sir98Backend.Services
 
         public EmailService(IConfiguration configuration)
         {
-            Email = configuration.GetValue<string>("EmailService:Email");
-            Password = configuration.GetValue<string>("EmailService:Password");
-            Host = configuration.GetValue<string>("EmailService:Host");
-            Port = configuration.GetValue<int>("EmailService:Port");
+            Email = configuration.GetValue<string>("EmailServer:Email");
+            Password = configuration.GetValue<string>("EmailServer:Password");
+            Host = configuration.GetValue<string>("EmailServer:Host");
+            Port = configuration.GetValue<int>("EmailServer:Port");
+
+            Console.WriteLine("Appsettings " + Email + " " + Password + " " + Host + " " + Port);
         }
 
         public void Send(MailMessage mail)
