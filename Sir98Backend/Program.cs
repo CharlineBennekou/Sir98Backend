@@ -14,6 +14,7 @@ using System.Threading.RateLimiting;
 using Sir98Backend.Controllers;
 using Sir98Backend.Services;
 using Sir98Backend.Repository.Interface;
+using Microsoft.AspNetCore.Http;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -82,26 +83,21 @@ builder.Services.AddAuthentication(x =>
 
 builder.Services.AddRateLimiter(options =>
 {
-    //options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
-    //RateLimitPartition.GetTokenBucketLimiter(
-    //    partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-    //    factory: partition => new TokenBucketRateLimiterOptions
-    //    {
-    //        AutoReplenishment = true,
-    //        TokenLimit = 3,
-    //        TokensPerPeriod = 1,
-    //        ReplenishmentPeriod = TimeSpan.FromSeconds(1),
+    //structure taken from https://stackoverflow.com/questions/76309904/net-7-rate-limiting-rate-limit-by-ip
 
-    //    }));
-
-    options.AddTokenBucketLimiter("userLoginRegisterForgot", options =>
-    {
-        options.AutoReplenishment = true;
-        options.TokenLimit = 3;
-        options.TokensPerPeriod = 1;
-        options.ReplenishmentPeriod = TimeSpan.FromSeconds(5);
-        options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-    });
+    options.AddPolicy("userLoginRegisterForgot", 
+        httpContext => RateLimitPartition.GetTokenBucketLimiter(
+            partitionKey: httpContext.Request.Path.ToString() + httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: partition => new()
+            {
+                AutoReplenishment = true,
+                TokenLimit = 3,
+                TokensPerPeriod = 1,
+                ReplenishmentPeriod = TimeSpan.FromSeconds(5),
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+            }
+        )
+    );
 
     options.OnRejected = async (context, cancellationToken) =>
     {
