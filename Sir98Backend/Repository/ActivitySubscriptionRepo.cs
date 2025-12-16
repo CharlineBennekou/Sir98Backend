@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Sir98Backend.Data;
 using Sir98Backend.Models;
-using Sir98Backend.Interface;
+using Sir98Backend.Interfaces;
 
 namespace Sir98Backend.Repository
 {

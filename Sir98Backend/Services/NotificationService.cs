@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Sir98Backend.Data;
+using Sir98Backend.Interfaces;
 using Sir98Backend.Models;
 
 namespace Sir98Backend.Services
@@ -7,10 +8,15 @@ namespace Sir98Backend.Services
     public class NotificationService
     {
         private readonly AppDbContext _context;
+        private readonly IPushSender _pushSender;
+        private readonly IPushSubscriptionService _pushSubscriptionService;
 
-        public NotificationService(AppDbContext context)
+        public NotificationService(AppDbContext context, IPushSender pushSender, IPushSubscriptionService pushSubscriptionService)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
+            _pushSender = pushSender ?? throw new ArgumentNullException(nameof(pushSender));
+            _pushSubscriptionService = pushSubscriptionService ?? throw new ArgumentNullException(nameof(pushSubscriptionService));
+
         }
 
         /// <summary>
@@ -18,7 +24,7 @@ namespace Sir98Backend.Services
         /// (AllOccurrences = true OR false).
         /// Use when the entire activity/series is updated.
         /// </summary>
-        public async Task NotifyUsersAboutSeriesChangeAsync(int activityId, string message)
+        public async Task NotifyUsersAboutSeriesChangeAsync(int activityId, NotificationPayload payload)
         {
             var userIds = await GetUserIdsForSeriesChangeAsync(activityId);
             if (!userIds.Any()) return;
@@ -26,17 +32,14 @@ namespace Sir98Backend.Services
             var pushSubscriptions = await GetPushSubscriptionsForUserIdsAsync(userIds);
             if (!pushSubscriptions.Any()) return;
 
-            await SendMessageToPushSubscriptionsAsync(pushSubscriptions, message);
+            await SendMessageToPushSubscriptionsAsync(pushSubscriptions, payload);
         }
 
         /// <summary>
         /// Notify users subscribed to ALL occurrences OR the specific occurrence.
         /// Use when a ChangedActivity (single occurrence override) is updated.
         /// </summary>
-        public async Task NotifyUsersAboutOccurrenceChangeAsync(
-            int activityId,
-            DateTimeOffset originalStartUtc,
-            string message)
+        public async Task NotifyUsersAboutOccurrenceChangeAsync(int activityId,DateTimeOffset originalStartUtc,NotificationPayload payload)
         {
             var userIds = await GetUserIdsForOccurrenceChangeAsync(activityId, originalStartUtc);
             if (!userIds.Any()) return;
@@ -44,7 +47,7 @@ namespace Sir98Backend.Services
             var pushSubscriptions = await GetPushSubscriptionsForUserIdsAsync(userIds);
             if (!pushSubscriptions.Any()) return;
 
-            await SendMessageToPushSubscriptionsAsync(pushSubscriptions, message);
+            await SendMessageToPushSubscriptionsAsync(pushSubscriptions, payload);
         }
 
         /// <summary>
@@ -98,12 +101,20 @@ namespace Sir98Backend.Services
                 .Where(ps => userIds.Contains(ps.UserId))
                 .ToListAsync();
         }
-
-        private Task SendMessageToPushSubscriptionsAsync(
-            List<PushSubscription> pushSubscriptions,
-            string message)
+        /// <summary>
+        /// Uses the PushSender to send the given payload to the list of PushSubscriptions. Then applies the result to the PushSubscriptionService to clean up invalid subscriptions.
+        /// </summary>
+        /// <param name="pushSubscriptions"></param>
+        /// <param name="payload"></param>
+        /// <returns></returns>
+        private async Task SendMessageToPushSubscriptionsAsync(List<PushSubscription> pushSubscriptions,NotificationPayload payload)
         {
-            throw new NotImplementedException("Push notification sending not implemented yet.");
+            var result = await _pushSender.SendAsync(
+                subscriptions: pushSubscriptions, // List<T> works as IReadOnlyCollection<T>
+                payload: new PushNotificationPayload(payload.Title, payload.Body, payload.Url));
+
+            await _pushSubscriptionService.ApplySendResultAsync(result);
         }
+
     }
 }

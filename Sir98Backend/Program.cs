@@ -9,9 +9,9 @@ using Sir98Backend.Data;
 using Sir98Backend.Interfaces;
 using Sir98Backend.Models;
 using Sir98Backend.Repository;
-using Sir98Backend.Interface;
 using Sir98Backend.Services;
 using Sir98Backend.Services;
+using Sir98Backend.Services.Notifications;
 using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
@@ -37,7 +37,10 @@ builder.Services.AddScoped<UserRepo>();
 
 //services
 builder.Services.AddScoped<ActivityOccurrenceService>();
+builder.Services.AddScoped<ActivityService>();  
 builder.Services.AddScoped<IPushSubscriptionService, PushSubscriptionService>();
+builder.Services.AddScoped<IPushSender, PushSender>();
+builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddSingleton<EmailService>();
 builder.Services.AddSingleton<TokenService>();
@@ -117,8 +120,8 @@ builder.Services.AddRateLimiter(options =>
 });
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-    //options.UseSqlServer(builder.Configuration.GetConnectionString("CharlineConnection")));
+    //options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("CharlineConnection")));
 
 builder.Services.AddSwaggerGen();
 
