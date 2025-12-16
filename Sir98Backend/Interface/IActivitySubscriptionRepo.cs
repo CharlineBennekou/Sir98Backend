@@ -1,6 +1,6 @@
 ﻿using Sir98Backend.Models;
 
-namespace Sir98Backend.Repository.Interface
+namespace Sir98Backend.Interface
 {
     public interface IActivitySubscriptionRepo
     {

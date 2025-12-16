@@ -4,16 +4,17 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using Sir98Backend.Controllers;
+using Sir98Backend.Controllers;
 using Sir98Backend.Data;
-using Sir98Backend.Repository;
-using Sir98Backend.Services;
 using Sir98Backend.Interfaces;
+using Sir98Backend.Models;
+using Sir98Backend.Repository;
+using Sir98Backend.Interface;
+using Sir98Backend.Services;
+using Sir98Backend.Services;
 using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
-using Sir98Backend.Controllers;
-using Sir98Backend.Services;
-using Sir98Backend.Repository.Interface;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,22 +29,16 @@ builder.Services.AddControllers()
 
 
 //repositories
-//builder.Services.AddSingleton<ActivityRepo>(new ActivityRepo());
-//builder.Services.AddSingleton<InstructorRepo>(new InstructorRepo());
-
 builder.Services.AddScoped<ActivityRepo>();
 builder.Services.AddScoped<ActivitySubscriptionRepo>();
 builder.Services.AddScoped<ChangedActivityRepo>();
 builder.Services.AddScoped<InstructorRepo>();
 builder.Services.AddScoped<UserRepo>();
 
+//services
 builder.Services.AddScoped<ActivityOccurrenceService>();
+builder.Services.AddScoped<IPushSubscriptionService, PushSubscriptionService>();
 builder.Services.AddScoped<IUserService, UserService>();
-
-
-
-
-
 builder.Services.AddSingleton<EmailService>();
 builder.Services.AddSingleton<TokenService>();
 
@@ -61,6 +56,10 @@ builder.Services.AddCors(options => //allow all for testing
 });
 
 var keyForSigning = builder.Configuration["JwtSettings:SigningKey"];
+
+//Configure Vapid settings used for push notifications
+builder.Services.Configure<VapidConfig>(
+    builder.Configuration.GetSection("Vapid"));
 
 builder.Services.AddAuthentication(x =>
 {

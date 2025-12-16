@@ -7,46 +7,103 @@ namespace Sir98Backend.Services
     public class NotificationService
     {
         private readonly AppDbContext _context;
-        
+
         public NotificationService(AppDbContext context)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
         }
 
-        //Method that takes an activity, finds all subscription to the activity, and then returns a list of userIds to notify
-        public async Task<List<string>> GetUserIdsToNotifyAsync(int activityId)
+        /// <summary>
+        /// Notify everyone who has ANY subscription for this ActivityId
+        /// (AllOccurrences = true OR false).
+        /// Use when the entire activity/series is updated.
+        /// </summary>
+        public async Task NotifyUsersAboutSeriesChangeAsync(int activityId, string message)
         {
-            var userIds = await _context.ActivitySubscriptions
+            var userIds = await GetUserIdsForSeriesChangeAsync(activityId);
+            if (!userIds.Any()) return;
+
+            var pushSubscriptions = await GetPushSubscriptionsForUserIdsAsync(userIds);
+            if (!pushSubscriptions.Any()) return;
+
+            await SendMessageToPushSubscriptionsAsync(pushSubscriptions, message);
+        }
+
+        /// <summary>
+        /// Notify users subscribed to ALL occurrences OR the specific occurrence.
+        /// Use when a ChangedActivity (single occurrence override) is updated.
+        /// </summary>
+        public async Task NotifyUsersAboutOccurrenceChangeAsync(
+            int activityId,
+            DateTimeOffset originalStartUtc,
+            string message)
+        {
+            var userIds = await GetUserIdsForOccurrenceChangeAsync(activityId, originalStartUtc);
+            if (!userIds.Any()) return;
+
+            var pushSubscriptions = await GetPushSubscriptionsForUserIdsAsync(userIds);
+            if (!pushSubscriptions.Any()) return;
+
+            await SendMessageToPushSubscriptionsAsync(pushSubscriptions, message);
+        }
+
+        /// <summary>
+        /// Helper method that gets all userIds subscribed to the given activityId.
+        /// Used only on series-wide changes.
+        /// </summary>
+        /// <param name="activityId"></param>
+        /// <returns></returns>
+        private async Task<List<string>> GetUserIdsForSeriesChangeAsync(int activityId)
+        {
+            return await _context.ActivitySubscriptions
                 .AsNoTracking()
                 .Where(s => s.ActivityId == activityId)
                 .Select(s => s.UserId)
                 .Distinct()
                 .ToListAsync();
-            return userIds;
         }
-
-        //Method that takes a list of userIds and then finds all PushSubscriptions for those users
-        public async Task<List<PushSubscription>> GetPushSubscriptionsForUserIdsAsync(List<string> userIds)
+        /// <summary>
+        /// Helper method that gets all userIds subscribed to the given activityId.
+        /// Used only on occurrence-specific changes.
+        /// </summary>
+        /// <param name="activityId"></param>
+        /// <param name="originalStartUtc"></param>
+        /// <returns></returns>
+        private async Task<List<string>> GetUserIdsForOccurrenceChangeAsync(
+            int activityId,
+            DateTimeOffset originalStartUtc)
         {
-            var pushSubscriptions = await _context.PushSubscriptions
+            return await _context.ActivitySubscriptions
+                .AsNoTracking()
+                .Where(s =>
+                    s.ActivityId == activityId &&
+                    (s.AllOccurrences || s.OriginalStartUtc == originalStartUtc))
+                .Select(s => s.UserId)
+                .Distinct()
+                .ToListAsync();
+        }
+        /// <summary>
+        /// This method retrieves all PushSubscriptions for the given list of userIds.
+        /// </summary>
+        /// <param name="userIds"></param>
+        /// <returns></returns>
+        private async Task<List<PushSubscription>> GetPushSubscriptionsForUserIdsAsync(
+            List<string> userIds)
+        {
+            if (userIds.Count == 0)
+                return new List<PushSubscription>();
+
+            return await _context.PushSubscriptions
                 .AsNoTracking()
                 .Where(ps => userIds.Contains(ps.UserId))
                 .ToListAsync();
-            return pushSubscriptions;
         }
 
-        //Method that takes a list of PushSubscriptions and a message, and then sends the message to all PushSubscriptions
-        public async Task SendMessageToPushSubscriptionsAsync(List<PushSubscription> pushSubscriptions, string message)
+        private Task SendMessageToPushSubscriptionsAsync(
+            List<PushSubscription> pushSubscriptions,
+            string message)
         {
             throw new NotImplementedException("Push notification sending not implemented yet.");
-        }
-
-        //Method that combines the above methods to notify users about an activity
-        public async Task NotifyUsersAboutActivityAsync(int activityId, string message)
-        {
-            var userIds = await GetUserIdsToNotifyAsync(activityId);
-            var pushSubscriptions = await GetPushSubscriptionsForUserIdsAsync(userIds);
-            await SendMessageToPushSubscriptionsAsync(pushSubscriptions, message);
         }
     }
 }

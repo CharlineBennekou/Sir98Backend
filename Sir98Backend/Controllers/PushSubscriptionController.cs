@@ -1,29 +1,34 @@
-﻿using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using Sir98Backend.Data;
+using Sir98Backend.Interface;
 using Sir98Backend.Models;
 using Sir98Backend.Models.DataTransferObjects;
+using Sir98Backend.Services;
 using WebPush;
-
 
 namespace Sir98Backend.Controllers
 {
     [ApiController]
-    [Microsoft.AspNetCore.Mvc.Route("api/[controller]")]
-    public class PushSubscriptionController : Controller
+    [Route("api/[controller]")]
+    public class PushSubscriptionController : ControllerBase
     {
-        public static class TestSubscriptionStore
+        private readonly AppDbContext _context;
+        private readonly IPushSubscriptionService _pushSubscriptionService;
+        private readonly VapidConfig _vapidConfig;
+
+        public PushSubscriptionController(
+            AppDbContext context,
+            IPushSubscriptionService pushSubscriptionService,
+            IOptions<VapidConfig> vapidOptions)
         {
-            public static List<PushSubscriptionDto> Subscriptions { get; } = new();
+            _context = context ?? throw new ArgumentNullException(nameof(context));
+            _pushSubscriptionService = pushSubscriptionService ?? throw new ArgumentNullException(nameof(pushSubscriptionService));
+            _vapidConfig = vapidOptions?.Value ?? throw new ArgumentNullException(nameof(vapidOptions));
         }
 
-        // In a real app you’d inject this via DI / config
-        private readonly VapidConfig _vapidConfig = new VapidConfig
-        {
-            Subject = "mailto:you@example.com",
-            PublicKey = "BDVzVxg_Qd8OqCOHLmA4EAxxF_FQ8qAAv-jYmWSfxofkIWe69EZgJFl2lk-U18kbE6s-Jp9j7v-VrT8eEQDTarQ", //you may look here, but dont look below
-            PrivateKey = "YxDoIeaf7SapX-Ye2qFOPpsNU9A0cxmmdz0vCtWvGxg" //dont look, avert your eyes
-        };
-
+        // Keeps your existing helper method
         [HttpGet("generate-vapid")]
         public IActionResult GenerateVapid()
         {
@@ -35,15 +40,15 @@ namespace Sir98Backend.Controllers
             });
         }
 
-
-
         /// <summary>
-        /// Frontend calls this once per device to store its push subscription.
+        /// TEST endpoint (kept): stores subscription using DbContext directly.
+        /// This mirrors your old in-memory list but persists to DB now.
         /// </summary>
         [HttpPost("addtotest")]
-        public IActionResult AddToTest([FromBody] PushSubscriptionDto subscription)
+        public async Task<IActionResult> AddToTest([FromBody] PushSubscriptionDto subscription)
         {
             if (subscription == null ||
+                string.IsNullOrWhiteSpace(subscription.UserId) ||
                 string.IsNullOrWhiteSpace(subscription.Endpoint) ||
                 string.IsNullOrWhiteSpace(subscription.P256dh) ||
                 string.IsNullOrWhiteSpace(subscription.Auth))
@@ -51,23 +56,50 @@ namespace Sir98Backend.Controllers
                 return BadRequest("Invalid subscription data.");
             }
 
-            // For now: just add to in-memory list (no deduplication)
-            TestSubscriptionStore.Subscriptions.Add(subscription);
+            var now = DateTimeOffset.UtcNow;
 
-            return Ok(new { message = "Subscription added to test list." });
+            // Upsert-by-endpoint using DbContext (since you asked to keep context here)
+            var existing = await _context.PushSubscriptions
+                .SingleOrDefaultAsync(ps => ps.Endpoint == subscription.Endpoint);
+
+            if (existing is null)
+            {
+                _context.PushSubscriptions.Add(new Models.PushSubscription
+                {
+                    UserId = subscription.UserId,
+                    Endpoint = subscription.Endpoint,
+                    P256dh = subscription.P256dh,
+                    Auth = subscription.Auth,
+                    CreatedAtUtc = now,
+                    LastUsedUtc = now
+                });
+            }
+            else
+            {
+                existing.UserId = subscription.UserId;
+                existing.P256dh = subscription.P256dh;
+                existing.Auth = subscription.Auth;
+                existing.LastUsedUtc = now;
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Subscription added to DB (test endpoint)." });
         }
 
         /// <summary>
-        /// Sends a test push notification to all stored test subscriptions.
-        /// You can call this with a simple POST (no body needed).
+        /// TEST endpoint (kept): sends a test push notification to all stored subscriptions.
+        /// Also removes expired subscriptions (404/410) using DbContext directly.
         /// </summary>
         [HttpPost("pushall")]
-        public IActionResult PushAll()
+        public async Task<IActionResult> PushAll()
         {
-            if (!TestSubscriptionStore.Subscriptions.Any())
-            {
+            var subscriptions = await _context.PushSubscriptions
+                .AsNoTracking()
+                .ToListAsync();
+
+            if (subscriptions.Count == 0)
                 return Ok(new { message = "No subscriptions to notify." });
-            }
 
             var webPushClient = new WebPushClient();
             var vapidDetails = new VapidDetails(
@@ -75,7 +107,6 @@ namespace Sir98Backend.Controllers
                 _vapidConfig.PublicKey,
                 _vapidConfig.PrivateKey);
 
-            // Simple message payload – what the service worker will receive.
             var payload = new
             {
                 title = "Test notification",
@@ -84,39 +115,108 @@ namespace Sir98Backend.Controllers
             };
             var payloadJson = System.Text.Json.JsonSerializer.Serialize(payload);
 
-            var failed = new List<string>();
+            var failed = 0;
+            var expiredEndpoints = new List<string>();
+            var touchedEndpoints = new List<string>();
 
-            foreach (var sub in TestSubscriptionStore.Subscriptions.ToList())
+            foreach (var sub in subscriptions)
             {
-                var pushSubscription = new WebPush.PushSubscription(
-                    sub.Endpoint,
-                    sub.P256dh,
-                    sub.Auth);
+                var pushSubscription = new WebPush.PushSubscription(sub.Endpoint, sub.P256dh, sub.Auth);
 
                 try
                 {
                     webPushClient.SendNotification(pushSubscription, payloadJson, vapidDetails);
+                    touchedEndpoints.Add(sub.Endpoint);
                 }
                 catch (WebPushException ex)
                 {
-                    // If subscription is invalid/expired, remove it
+                    failed++;
+
                     if (ex.StatusCode == System.Net.HttpStatusCode.Gone ||
                         ex.StatusCode == System.Net.HttpStatusCode.NotFound)
                     {
-                        TestSubscriptionStore.Subscriptions.Remove(sub);
+                        expiredEndpoints.Add(sub.Endpoint);
                     }
-
-                    failed.Add(sub.Endpoint);
                 }
             }
+
+            // Cleanup expired subs (DbContext, per your request)
+            if (expiredEndpoints.Count > 0)
+            {
+                var expired = await _context.PushSubscriptions
+                    .Where(ps => expiredEndpoints.Contains(ps.Endpoint))
+                    .ToListAsync();
+
+                _context.PushSubscriptions.RemoveRange(expired);
+            }
+
+            // Update LastUsedUtc for successful sends (optional but aligns with your model)
+            if (touchedEndpoints.Count > 0)
+            {
+                var now = DateTimeOffset.UtcNow;
+
+                // Load & update tracked entities
+                var touched = await _context.PushSubscriptions
+                    .Where(ps => touchedEndpoints.Contains(ps.Endpoint))
+                    .ToListAsync();
+
+                foreach (var t in touched)
+                    t.LastUsedUtc = now;
+            }
+
+            if (expiredEndpoints.Count > 0 || touchedEndpoints.Count > 0)
+                await _context.SaveChangesAsync();
 
             return Ok(new
             {
                 message = "PushAll triggered.",
-                total = TestSubscriptionStore.Subscriptions.Count,
-                failed = failed.Count
+                totalAttempted = subscriptions.Count,
+                failed,
+                removedExpired = expiredEndpoints.Count
             });
         }
-    
-}
+
+        // -------------------------
+        // "REAL" endpoints using the SERVICE (kept separate from your test ones)
+        // -------------------------
+
+        /// <summary>
+        /// Real endpoint: upsert using your service.
+        /// Temporary: UserId is provided by frontend until auth is implemented.
+        /// </summary>
+        [HttpPost]
+        public async Task<IActionResult> Upsert([FromBody] PushSubscriptionDto subscription)
+        {
+            if (subscription == null ||
+                string.IsNullOrWhiteSpace(subscription.UserId) ||
+                string.IsNullOrWhiteSpace(subscription.Endpoint) ||
+                string.IsNullOrWhiteSpace(subscription.P256dh) ||
+                string.IsNullOrWhiteSpace(subscription.Auth))
+            {
+                return BadRequest("Invalid subscription data.");
+            }
+
+            await _pushSubscriptionService.UpsertAsync(
+                subscription.UserId,
+                subscription.Endpoint,
+                subscription.P256dh,
+                subscription.Auth);
+
+            return NoContent();
+        }
+
+        /// <summary>
+        /// Real endpoint: remove using your service.
+        /// </summary>
+        [HttpDelete]
+        public async Task<IActionResult> Remove([FromQuery] string userId, [FromQuery] string endpoint)
+        {
+            if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(endpoint))
+                return BadRequest("userId and endpoint are required.");
+
+            await _pushSubscriptionService.RemoveAsync(userId, endpoint);
+            return NoContent();
+        }
+    }
+
 }
