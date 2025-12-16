@@ -1,53 +1,62 @@
-﻿using Sir98Backend.Models;
-using System.Xml.Linq;
+﻿using Microsoft.EntityFrameworkCore;
+using Sir98Backend.Data;
+using Sir98Backend.Models;
 
 namespace Sir98Backend.Repository
 {
     public class InstructorRepo
     {
-        private readonly List<Instructor> _instructors = new();
-        private int _nextId = 1;
+        private readonly AppDbContext _context;
 
-
-        public InstructorRepo()
+        public InstructorRepo(AppDbContext context)
         {
-            _instructors = new List<Instructor>();
-            _instructors.Add(new Instructor { Id = _nextId++, Email = "larsboh@roskilde.dk", Number = "24629361", FirstName = "Lars", Image = "hansBillede.png" });
-            _instructors.Add(new Instructor { Id = _nextId++, Email = "lillianv@roskilde.dk", Number = "30841920", FirstName = "Lillian", Image = "LiselotteBillede.png" });
-            _instructors.Add(new Instructor { Id = _nextId++, Email = "pietherlh@roskilde.dk", Number = "61246799", FirstName = "Piether", Image = "JeppeBillede.png" });
-
+            _context = context;
         }
 
-        public List<Instructor> GetAll()
+        public Task<List<Instructor>> GetAllAsync()
         {
-            return _instructors;
+            return _context.Instructors
+                .AsNoTracking()
+                .ToListAsync();
         }
 
-        public Instructor? GetById(int id)
+        public Task<Instructor?> GetByIdAsync(int id)
         {
-            return _instructors.FirstOrDefault(i => i.Id == id);
+            return _context.Instructors
+                .AsNoTracking()
+                .FirstOrDefaultAsync(i => i.Id == id);
         }
 
-        public Instructor Add(Instructor instructor)
+        public async Task<Instructor> AddAsync(Instructor instructor)
         {
-            instructor.Id = _nextId++;
-            _instructors.Add(instructor);
+            if (instructor == null)
+                throw new ArgumentNullException(nameof(instructor));
+
+            _context.Instructors.Add(instructor);
+            await _context.SaveChangesAsync();
+
             return instructor;
         }
 
-        public Instructor? Delete(int id)
+        public async Task<Instructor?> DeleteAsync(int id)
         {
-            var instructor = GetById(id);
-            if (instructor != null)
-            {
-                _instructors.Remove(instructor);
-            }
+            var instructor = await _context.Instructors
+                .FirstOrDefaultAsync(i => i.Id == id);
+
+            if (instructor == null)
+                return null;
+
+            _context.Instructors.Remove(instructor);
+            await _context.SaveChangesAsync();
+
             return instructor;
         }
 
-        public Instructor? Update(int id, Instructor instructor)
+        public async Task<Instructor?> UpdateAsync(int id, Instructor instructor)
         {
-            var existing = GetById(id);
+            var existing = await _context.Instructors
+                .FirstOrDefaultAsync(i => i.Id == id);
+
             if (existing == null)
                 return null;
 
@@ -55,6 +64,9 @@ namespace Sir98Backend.Repository
             existing.Number = instructor.Number;
             existing.FirstName = instructor.FirstName;
             existing.Image = instructor.Image;
+
+            await _context.SaveChangesAsync();
+
             return existing;
         }
     }

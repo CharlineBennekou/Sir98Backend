@@ -1,9 +1,15 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
+using Sir98Backend.Controllers;
+using Sir98Backend.Data;
 using Sir98Backend.Repository;
+using Sir98Backend.Services;
+using Sir98Backend.Interfaces;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using Sir98Backend.Controllers;
 using Sir98Backend.Services;
@@ -13,8 +19,26 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles; //We  have many-to-many relationships, this prevents circular references from potentially causing issues during serialization
+        options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull; //if a value is null, do not include it in the response
+    });
 
+
+//repositories
+//builder.Services.AddSingleton<ActivityRepo>(new ActivityRepo());
+//builder.Services.AddSingleton<InstructorRepo>(new InstructorRepo());
+
+builder.Services.AddScoped<ActivityRepo>();
+builder.Services.AddScoped<ActivitySubscriptionRepo>();
+builder.Services.AddScoped<ChangedActivityRepo>();
+builder.Services.AddScoped<InstructorRepo>();
+builder.Services.AddScoped<UserRepo>();
+
+builder.Services.AddScoped<ActivityOccurrenceService>();
+builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddSingleton<ActivityRepo>(new ActivityRepo());
 builder.Services.AddSingleton<InstructorRepo>(new InstructorRepo());
 builder.Services.AddSingleton<ChangedActivityRepo>();
@@ -29,6 +53,8 @@ builder.Services.AddSingleton<ActivitySubscriptionRepo>();
 
 
 
+builder.Services.AddSingleton<EmailService>();
+builder.Services.AddSingleton<TokenService>();
 
 
 
@@ -100,9 +126,24 @@ builder.Services.AddRateLimiter(options =>
     };
 });
 
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    //options.UseSqlServer(builder.Configuration.GetConnectionString("CharlineConnection")));
 
 builder.Services.AddSwaggerGen();
+
 var app = builder.Build();
+
+//Deletes and recreates database on startup. remove later.
+//using (var scope = app.Services.CreateScope())
+//{
+//    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+//    db.Database.EnsureDeleted();
+//    db.Database.EnsureCreated();
+//}
+
+
+await DbSeeder.SeedAsync(app); //Seed the database
 
 // Configure the HTTP request pipeline.
 app.UseSwagger();

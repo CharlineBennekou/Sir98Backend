@@ -37,11 +37,11 @@ namespace Sir98Backend.Services
         /// <param name="fromUtc"></param> StartTime in UTC. Used so we can "get the next page" starting from right after the last StartTime shown
         /// <param name="days"></param> Amount of days forward we will get. For example 7 days forward means we will get from StartTime until 7 days later
         /// <returns></returns>
-        public IEnumerable<ActivityOccurrenceDto> GetOccurrences(DateTimeOffset fromUtc, int days, string filter, string userId)
+        public async Task<IEnumerable<ActivityOccurrenceDto>> GetOccurrencesAsync(DateTimeOffset fromUtc, int days, string filter, string userId)
         {
             var toUtc = fromUtc.AddDays(days); //Calculates the EndDate based on how many days from the parameter
 
-            var activities = _activityRepo.GetAll(); //Gets all activities from repo
+            IEnumerable<Activity> activities = await _activityRepo.GetAllAsync(); //Gets all activities from repo
 
             bool filteredByMine = false;
 
@@ -56,7 +56,7 @@ namespace Sir98Backend.Services
                 {
                     filteredByMine = true;
 
-                    var subscribedActivityIds = _subscriptionRepo.GetByUserId(userId)
+                    var subscribedActivityIds = (await _activitySubsRepo.GetByUserIdAsync(userId))
                         .Select(s => s.ActivityId)
                         .ToHashSet();
 
@@ -68,19 +68,17 @@ namespace Sir98Backend.Services
                 {
                     // filter by tags containing the filter string
                     activities = activities
-                        .Where(a =>
-                            a.Tags != null &&
-                            a.Tags.Any(tag =>
-                                !string.IsNullOrWhiteSpace(tag) &&
-                                tag.ToLower().Contains(normalizedFilter)))
-                        .ToList();
+                      .Where(a =>
+                       !string.IsNullOrWhiteSpace(a.Tag) &&
+                       a.Tag.ToLower().Contains(normalizedFilter))
+                      .ToList();
                 }
             }
 
 
 
 
-            var changes = _changedActivityRepo.GetAll();
+            var changes = await _changedActivityRepo.GetAllAsync();
 
             // (ActivityId, OriginalStartUtc) -> ChangedActivity
             var changeLookup = changes
@@ -183,7 +181,7 @@ namespace Sir98Backend.Services
                 var description = change.NewDescription ?? activity.Description;
                 var address = change.NewAddress ?? activity.Address;
                 var instructors = change.NewInstructors ?? activity.Instructors;
-                var tags = change.NewTags ?? activity.Tags;
+                var tag = change.NewTag ?? activity.Tag;
 
 
                 result.Add(new ActivityOccurrenceDto
@@ -197,8 +195,8 @@ namespace Sir98Backend.Services
                     Address = address ?? "",
                     Image = activity.Image,
                     Link = activity.Link,
-                    Instructors = instructors,
-                    Tags = tags ?? new List<string>(),
+                    Instructors = instructors?.ToList(),
+                    Tag = tag ?? "",
                     Cancelled = change.IsCancelled
                 });
             }
@@ -216,8 +214,8 @@ namespace Sir98Backend.Services
                     Address = activity.Address,
                     Image = activity.Image,
                     Link = activity.Link,
-                    Instructors = activity.Instructors,
-                    Tags = activity.Tags ?? new List<string>(),
+                    Instructors = activity.Instructors?.ToList(),
+                    Tag = activity.Tag ?? "",
                     Cancelled = activity.Cancelled
                 });
             }
@@ -228,77 +226,27 @@ namespace Sir98Backend.Services
 
 
 
-        private void SetToSubscribed(List<ActivityOccurrenceDto> occurrences, bool filteredByMine, string userId)
+
+        private async Task SetToSubscribed(List<ActivityOccurrenceDto> result, bool filteredByMine, string userId)
         {
-            if (filteredByMine) //if UserId is provided and we are filtering by "mine", then result will only contain subscribed activities, so we can set all to true
+            if (filteredByMine)
             {
-                foreach (var occ in occurrences)
-                    occ.IsSubscribed = true;
+                foreach (var occurrence in result)
+                    occurrence.IsSubscribed = true;
 
                 return;
             }
 
-            
+            var subs = await _activitySubsRepo.GetByUserIdAsync(userId);
 
+            var subscribedActivityIds = subs
+                .Select(s => s.ActivityId)
+                .ToHashSet();
 
-            var subs = _subscriptionRepo.GetByUserId(userId)?.ToList() 
-                ?? new List<ActivitySubscription>() ;
-
-            Console.WriteLine(
-                $"DEBUG subscriptions count = {subs.Count}");
-
-
-            foreach (var occ in occurrences)
-                {
-                occ.IsSubscribed = subs.Any(sub =>
-                {
-                    // Skal være samme aktivitet
-                    if (sub.ActivityId != occ.ActivityId)
-                        return false;
-
-                    // Serie-subscription
-                    if (sub.AllOccurrences)
-                        return true;
-
-                    // Single occurrence
-                    if (sub.OriginalStartUtc.HasValue && occ.OriginalStartUtc.HasValue)
-                    {
-                        return sub.OriginalStartUtc.Value.UtcDateTime
-                               == occ.OriginalStartUtc.Value.UtcDateTime;
-                    }
-
-                    return false;
-                });
-
-                // DEBUG – behold denne midlertidigt
-                if (occ.ActivityId == 5)
-                {
-                    Console.WriteLine(
-                        $"CHECK act=5 | occ={occ.OriginalStartUtc:o} | isSub={occ.IsSubscribed}");
-                }
-
-
-
-              
-
-                //// else check single subscription match (activityId + originalStartUtc)
-                //if (occ.OriginalStartUtc.HasValue)
-                //{
-                //    var key = (occ.ActivityId,
-                //    occ.OriginalStartUtc.Value.UtcDateTime);
-
-                //    occ.IsSubscribed = singleSubs.Contains(key);
-                //}
-                //else
-                //{
-                //    occ.IsSubscribed = false;
-                //}
-
-                
-            }
-
-
+            foreach (var occurrence in result)
+                occurrence.IsSubscribed = subscribedActivityIds.Contains(occurrence.ActivityId);
         }
+
     }
 
 }

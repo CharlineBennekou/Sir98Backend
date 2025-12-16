@@ -5,7 +5,6 @@ namespace Sir98Backend.Models.DataTransferObjects
     public class ActivityOccurrenceDto
     {
         public int ActivityId { get; set; }
-        public bool IsSubscribed{ get; set; }
 
         /// <summary>
         /// The original start of the recurrence before any potential changes.
@@ -28,10 +27,11 @@ namespace Sir98Backend.Models.DataTransferObjects
         public string? Description { get; set; }
         public List<Instructor>? Instructors { get; set; }
 
-        public List<string>? Tags { get; set; } = new(); // Default to empty list to avoid null issues in frontend
+        public string? Tag { get; set; } = "";
 
         public bool Cancelled { get; set; }
 
+        public bool isSubscribed { get; set; }
     }
 
 }

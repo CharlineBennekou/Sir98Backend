@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.SignalR;
+﻿using Microsoft.EntityFrameworkCore;
+using Sir98Backend.Data;
 using Sir98Backend.Models;
 using Sir98Backend.Repository.Interface;
 
@@ -6,22 +7,29 @@ namespace Sir98Backend.Repository
 {
     public class ActivitySubscriptionRepo : IActivitySubscriptionRepo
     {
-        private readonly List<ActivitySubscription> _subscriptions = new();
-        private int _nextId = 1;
+        private readonly AppDbContext _context;
 
-        public IEnumerable<ActivitySubscription> GetAll()
+        public ActivitySubscriptionRepo(AppDbContext context)
         {
-            return _subscriptions;
+            _context = context;
         }
 
-        public IEnumerable<ActivitySubscription> GetByUserId(string userId)
+        public async Task<IEnumerable<ActivitySubscription>> GetAllAsync()
         {
-            return _subscriptions
+            return await _context.ActivitySubscriptions
+                .AsNoTracking()
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<ActivitySubscription>> GetByUserIdAsync(string userId)
+        {
+            return await _context.ActivitySubscriptions
+                .AsNoTracking()
                 .Where(s => s.UserId == userId)
-                .ToList();
+                .ToListAsync();
         }
 
-        public ActivitySubscription? Add(ActivitySubscription subscription)
+        public async Task<ActivitySubscription?> AddAsync(ActivitySubscription subscription)
         {
             Console.WriteLine($"Repo.Add called: user={subscription.UserId}, act={subscription.ActivityId}, original={subscription.OriginalStartUtc}, all={subscription.AllOccurrences}");
             if (subscription.AllOccurrences)
@@ -33,12 +41,7 @@ namespace Sir98Backend.Repository
                     s.AllOccurrences == true);
                 if (exists) return null;
 
-                  subscription.OriginalStartUtc = null;
-            }
-            else
-            {
-                // Check duplicate single-subscription
-                var exists = _subscriptions.Any(s =>
+            var alreadySubscribed = await _context.ActivitySubscriptions.AnyAsync(s =>
                 s.UserId == subscription.UserId &&
                     s.ActivityId == subscription.ActivityId &&
                     s.OriginalStartUtc == subscription.OriginalStartUtc);
@@ -46,40 +49,29 @@ namespace Sir98Backend.Repository
                 if (exists) return null;
             }
 
-            subscription.Id = _nextId++;
-            _subscriptions.Add(subscription);
-            Console.WriteLine("Added subscription; total now = " + _subscriptions.Count);
+            _context.ActivitySubscriptions.Add(subscription);
+            await _context.SaveChangesAsync();
 
             return subscription;
         }
 
-        public bool Delete(string userId, int activityId, DateTimeOffset? originalStartUtc)
+        public async Task<bool> DeleteAsync(string userId, int activityId, DateTimeOffset originalStartUtc)
         {
-            ActivitySubscription? subscription;
-
-            if (originalStartUtc == null)
-            {
-                subscription = _subscriptions.FirstOrDefault(s =>
+            var existing = await _context.ActivitySubscriptions.FirstOrDefaultAsync(s =>
                 s.UserId == userId &&
                 s.ActivityId == activityId &&
-                s.AllOccurrences == true);
-            }
-            else
-            {
-                subscription = _subscriptions.FirstOrDefault(s =>
-                    s.UserId == userId &&
-                    s.ActivityId == activityId &&
-                    s.OriginalStartUtc == originalStartUtc);
-            }
-            if (subscription == null)
+                s.OriginalStartUtc == originalStartUtc
+            );
+
+            if (existing == null)
                 return false;
 
-            _subscriptions.Remove(subscription);
+            _context.ActivitySubscriptions.Remove(existing);
+            await _context.SaveChangesAsync();
+
             return true;
 
             
         }
-
     }
 }
-

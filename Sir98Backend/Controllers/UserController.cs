@@ -1,104 +1,114 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Isopoh.Cryptography.Argon2;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
+using Sir98Backend.Interfaces;
 using Sir98Backend.Models;
-using Sir98Backend.Repository;
+using Sir98Backend.Models.DataTransferObjects;
+using Sir98Backend.Services;
 using System.IdentityModel.Tokens.Jwt;
+using System.Net.Mail;
 using System.Security.Claims;
 using System.Text;
-using Isopoh.Cryptography.Argon2;
-using Sir98Backend.Models.DataTransferObjects;
-using Newtonsoft.Json.Linq;
-using Microsoft.AspNetCore.RateLimiting;
 
 namespace Sir98Backend.Controllers
 {
     [ApiController]
     [EnableRateLimiting("userLoginRegisterForgot")]
-    [Microsoft.AspNetCore.Mvc.Route("api/[controller]")]
+    [Route("api/[controller]")]
     public class UserController : Controller
     {
-        private readonly UserRepo _userRepo;
-        public UserController(UserRepo userRepo)
+
+        private readonly IUserService _userService;
+        private readonly TokenService _tokenService;
+        private readonly EmailService _emailService;
+        private readonly IConfiguration _configuration;
+
+        public UserController(
+            IUserService userService,
+            TokenService tokenService,
+            EmailService emailService,
+            IConfiguration configuration)
         {
-            _userRepo = userRepo;
+            _userService = userService ?? throw new ArgumentNullException(nameof(userService));
+            _tokenService = tokenService ?? throw new ArgumentNullException(nameof(tokenService));
+            _emailService = emailService ?? throw new ArgumentNullException(nameof(emailService));
+            _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
         }
 
         [HttpPost("Register")]
-        public IActionResult RegisterAccount()
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<IActionResult> RegisterAccount([FromBody] RegisterAccount registration)
         {
-            throw new Exception();
+            // Generic response to prevent user enumeration
+            const string genericResponse = "If the email is eligible, an activation email has been sent.";
+
+            if (registration.Password != registration.PasswordRepeated)
+                return Ok(genericResponse);
+
+            // We do NOT check "does user exist" here anymore (that leaks).
+            string activationToken = _tokenService.GenerateActivationToken();
+
+            try
+            {
+                await _userService.RegisterUserAsync(registration, activationToken);
+
+                string link =
+                    $"{Request.Scheme}://{Request.Host}{Request.PathBase}/api/User/Activate/code={activationToken}";
+
+                MailMessage msg = _emailService.CreateEmail(
+                    registration.Email,
+                    "Activate your account",
+                    link
+                );
+                _emailService.Send(msg);
+            }
+            catch
+            {
+                // Intentionally swallow details: still return generic response
+                // (You should log the exception internally)
+            }
+
+            return Ok(genericResponse);
         }
 
         [HttpPost("Login")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        public IActionResult Login([FromBody] UserCredentials credentials)
+        public async Task<IActionResult> Login([FromBody] UserCredentials credentials)
         {
-            Console.WriteLine(credentials.Email);
-            if(IsPasswordValid(credentials.Password) == false)
-            {
-                return Unauthorized("Invalid password");
-            }
-            User user = _userRepo.GetUser(credentials.Email.ToLower());
-            if(user is null || user is default(User))
-            {
-                return Unauthorized("User not found");
-            }
+            const string invalidAuth = "Invalid email or password.";
 
-            if (Argon2.Verify(user.HashedPassword, credentials.Password) == false)
-            {
-                return Unauthorized("User not found");
-            }
-            string filepath = Environment.CurrentDirectory + "\\Keys\\JWToken key for signing.txt";
-            string keyForSigning = System.IO.File.ReadAllText(filepath);
-            return Ok($"Bearer {GenerateJWToken(user, keyForSigning)}");
+            if (!IsPasswordValid(credentials.Password))
+                return Unauthorized(invalidAuth);
+
+            var user = await _userService.GetUserAsync(credentials.Email);
+            if (user == null)
+                return Unauthorized(invalidAuth);
+
+            if (!Argon2.Verify(user.HashedPassword, credentials.Password))
+                return Unauthorized(invalidAuth);
+
+            string signingKey = _configuration.GetValue<string>("JwtSettings:SigningKey");
+            return Ok($"Bearer {_tokenService.GenerateJWToken(user, signingKey)}");
         }
 
-        private bool IsPasswordValid(string password)
+        [HttpGet("Activate/code={code}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> ActivationLink(string code)
         {
-            return true;
-        }
-
-        private string GenerateJWToken(User user, string JWTokenSigningKey)
-        {
-            // authentication successful so generate jwt token
-            if(user is null || user is default(User))
+            try
             {
-                throw new ArgumentNullException("user can not be null");
+                await _userService.ActivateUserAsync(code);
+                return Ok("User activated.");
             }
-            if(JWTokenSigningKey is null || JWTokenSigningKey is default(string))
+            catch
             {
-                throw new ArgumentNullException("Signing key can not be null");
+                return BadRequest("Invalid or expired activation code.");
             }
-
-            var key = Encoding.ASCII.GetBytes(JWTokenSigningKey);
-
-            var tokenDescriptor = new SecurityTokenDescriptor
-            {
-                Subject = new ClaimsIdentity([
-                    new Claim(ClaimTypes.Name, user.Email.ToString()),
-                    new Claim(ClaimTypes.Role, user.Role.ToString())
-                ]),
-                Expires = DateTime.UtcNow.AddYears(1),
-                SigningCredentials = new(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
-            };
-
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var token = tokenHandler.CreateToken(tokenDescriptor);
-            return tokenHandler.WriteToken(token);
         }
 
-        [HttpPost("ActivationLink")]
-        public IActionResult ActivationLink()
-        {
-            throw new Exception();
-        }
-
-
-        [HttpPost("ForgotPassword")]
-        public IActionResult SendForgotPassword()
-        {
-            throw new Exception();
-        }
+        private bool IsPasswordValid(string password) => true;
     }
 }
