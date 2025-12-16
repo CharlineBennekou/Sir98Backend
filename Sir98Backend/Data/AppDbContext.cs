@@ -222,10 +222,6 @@ namespace Sir98Backend.Data
                 // Prevent duplicates (matches your old in-memory checks)
                 builder.HasIndex(x => x.Email).IsUnique();
             });
-
         }
-
-
     }
-
 }

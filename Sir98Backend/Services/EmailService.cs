@@ -1,26 +1,21 @@
-﻿using System.Net.Mail;
+﻿using Microsoft.Extensions.Configuration;
+using System.Net.Mail;
 
 namespace Sir98Backend.Services
 {
     public class EmailService
     {
-        private string Email;
-        private string Password;
-        private string Host;
-        private int Port;
+        private readonly string Email;
+        private readonly string Password;
+        private readonly string Host;
+        private readonly int Port;
 
-        public EmailService()
+        public EmailService(IConfiguration configuration)
         {
-            string filepath = Environment.CurrentDirectory + "\\Keys\\Email server credentials.txt";
-            List<string> keyForSigning = System.IO.File.ReadLines(filepath).ToList();
-            Email = keyForSigning[0];
-            Password = keyForSigning[1];
-            Host = keyForSigning[2];
-            if (Int32.TryParse(keyForSigning[3], out Port) == false)
-            {
-                throw new Exception("Port is not a number");
-            }
-            Console.WriteLine(Email + Password + Host + Port);
+            Email = configuration.GetValue<string>("EmailService:Email");
+            Password = configuration.GetValue<string>("EmailService:Password");
+            Host = configuration.GetValue<string>("EmailService:Host");
+            Port = configuration.GetValue<int>("EmailService:Port");
         }
 
         public void Send(MailMessage mail)

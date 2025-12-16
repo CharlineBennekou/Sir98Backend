@@ -90,7 +90,7 @@ namespace Sir98Backend.Controllers
                 return Unauthorized(invalidAuth);
 
             string signingKey = _configuration.GetValue<string>("JwtSettings:SigningKey");
-            return Ok($"Bearer {GenerateJWToken(user, signingKey)}");
+            return Ok($"Bearer {_tokenService.GenerateJWToken(user, signingKey)}");
         }
 
         [HttpGet("Activate/code={code}")]
@@ -110,31 +110,5 @@ namespace Sir98Backend.Controllers
         }
 
         private bool IsPasswordValid(string password) => true;
-
-        private string GenerateJWToken(User user, string jwTokenSigningKey)
-        {
-            if (user is null) throw new ArgumentNullException(nameof(user));
-            if (string.IsNullOrWhiteSpace(jwTokenSigningKey))
-                throw new ArgumentNullException(nameof(jwTokenSigningKey));
-
-            var key = Encoding.ASCII.GetBytes(jwTokenSigningKey);
-
-            var tokenDescriptor = new SecurityTokenDescriptor
-            {
-                Subject = new ClaimsIdentity(new[]
-                {
-                    new Claim(ClaimTypes.Name, user.Email),
-                    new Claim(ClaimTypes.Role, user.Role)
-                }),
-                Expires = DateTime.UtcNow.AddYears(1),
-                SigningCredentials = new SigningCredentials(
-                    new SymmetricSecurityKey(key),
-                    SecurityAlgorithms.HmacSha256Signature)
-            };
-
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var token = tokenHandler.CreateToken(tokenDescriptor);
-            return tokenHandler.WriteToken(token);
-        }
     }
 }

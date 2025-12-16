@@ -111,8 +111,8 @@ builder.Services.AddRateLimiter(options =>
 });
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    //options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-    options.UseSqlServer(builder.Configuration.GetConnectionString("CharlineConnection")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    //options.UseSqlServer(builder.Configuration.GetConnectionString("CharlineConnection")));
 
 builder.Services.AddSwaggerGen();
 
