@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Sir98Backend.Data;
 using Sir98Backend.Models;
+using Sir98Backend.Repository.Interface;
 
 namespace Sir98Backend.Repository
 {
@@ -30,6 +31,7 @@ namespace Sir98Backend.Repository
 
         public async Task<ActivitySubscription?> AddAsync(ActivitySubscription subscription)
         {
+            Console.WriteLine($"Repo.Add called: user={subscription.UserId}, act={subscription.ActivityId}, original={subscription.OriginalStartUtc}, all={subscription.AllOccurrences}");
             if (subscription == null)
                 throw new ArgumentNullException(nameof(subscription));
 
@@ -63,6 +65,8 @@ namespace Sir98Backend.Repository
             await _context.SaveChangesAsync();
 
             return true;
+
+            
         }
     }
 }

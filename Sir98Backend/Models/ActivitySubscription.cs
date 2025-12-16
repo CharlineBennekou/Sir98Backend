@@ -17,5 +17,7 @@
         public User User { get; set; }
 
 
+        public bool AllOccurrences { get; set; }
+
     }
 }

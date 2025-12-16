@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Sir98Backend.Models;
+using Sir98Backend.Models.DataTransferObjects;
 using Sir98Backend.Repository;
 
 namespace Sir98Backend.Controllers
@@ -36,11 +37,24 @@ namespace Sir98Backend.Controllers
         public async Task<ActionResult<ActivitySubscription>> Post([FromBody] ActivitySubscription subscription)
         {
             if (subscription == null)
+                return BadRequest("userId and activityId are required.");
+
+
+            if (subscription == null)
                 return BadRequest("Body is required.");
 
             if (string.IsNullOrWhiteSpace(subscription.UserId))
                 return BadRequest("UserId is required.");
 
+            if (subscription.ActivityId <= 0)
+                return BadRequest("ActivityId must be greater than 0.");
+
+            //if (subscription.OriginalStartUtc == null)
+            //    return BadRequest("OriginalStartUtc is required.");
+
+
+
+         
             if (subscription.ActivityId <= 0)
                 return BadRequest("ActivityId must be greater than 0.");
 
@@ -53,8 +67,8 @@ namespace Sir98Backend.Controllers
             return Created($"api/ActivitySubscription/{created.Id}", created);
         }
 
-        [HttpDelete]
-        public async Task<IActionResult> Delete([FromBody] ActivitySubscription sub)
+        [HttpPost("unsubscribe")]
+        public async Task<IActionResult> UnsubscribeAsync([FromBody] SubscribeRequestDto sub)
         {
             if (sub == null)
                 return BadRequest("Body is required.");
@@ -62,8 +76,10 @@ namespace Sir98Backend.Controllers
             bool deleted = await _repository.DeleteAsync(
                 sub.UserId,
                 sub.ActivityId,
-                sub.OriginalStartUtc
-            );
+                (DateTimeOffset)sub.OriginalStartUtc
+
+            ) ;
+
 
             if (!deleted)
                 return NotFound("Subscription not found.");

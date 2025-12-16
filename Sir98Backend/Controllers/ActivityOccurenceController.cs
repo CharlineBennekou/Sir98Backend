@@ -1,8 +1,15 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Org.BouncyCastle.Bcpg;
+using Org.BouncyCastle.Ocsp;
+using Sir98Backend.Models;
 using Sir98Backend.Models.DataTransferObjects;
+using Sir98Backend.Repository;
 using Sir98Backend.Services;
+using System.Diagnostics.Eventing.Reader;
+using System.Security.Cryptography.X509Certificates;
 
 namespace Sir98Backend.Controllers
+
 {
     [ApiController]
     [Route("api/activity-occurrences")]
@@ -27,25 +34,35 @@ namespace Sir98Backend.Controllers
          [FromQuery] string? userId = null)
         {
             if (days <= 0)
-            {
+            
                 return BadRequest("You must go at least 1 day forward");
-            }
+            
 
             if (from.HasValue && from.Value.Offset != TimeSpan.Zero)
-            {
+            
                 return BadRequest("The 'from' parameter must be sent in UTC (offset +00:00). Example: 2026-03-03T17:00:00Z");
-            }
+            
 
-            if(filter == "mine" && userId==null) //If you aren't logged in, you cant filter by mine. Frontend should prevent this, but just in case, we will clear filter
-            {
+            if (filter == "mine" && userId==null) //If you aren't logged in, you cant filter by mine. Frontend should prevent this, but just in case, we will clear filter
+            
                 filter = null;
-            }
+            
 
             var fromUtc = (from ?? DateTimeOffset.UtcNow).ToUniversalTime();
 
             var occurrences = await _service.GetOccurrencesAsync(fromUtc, days, filter, userId);
 
             return Ok(occurrences);
+
+
         }
+
+
     }
+
+
+
+    
 }
+   
+

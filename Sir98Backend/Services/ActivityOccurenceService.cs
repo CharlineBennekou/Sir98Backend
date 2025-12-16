@@ -8,6 +8,7 @@ using Org.BouncyCastle.Security;
 using Sir98Backend.Models;
 using Sir98Backend.Models.DataTransferObjects;
 using Sir98Backend.Repository;
+using Sir98Backend.Repository.Interface;
 
 namespace Sir98Backend.Services
 {
@@ -17,16 +18,17 @@ namespace Sir98Backend.Services
         private readonly ChangedActivityRepo _changedActivityRepo;
         private readonly ActivitySubscriptionRepo _activitySubsRepo;
 
+
         private static readonly TimeZoneInfo DanishZone =
             TimeZoneInfo.FindSystemTimeZoneById("Europe/Copenhagen");
 
         private const string DanishTzId = "Europe/Copenhagen";
 
-        public ActivityOccurrenceService(ActivityRepo activityRepo, ChangedActivityRepo changedActivityRepo, ActivitySubscriptionRepo activitySubRepo)
+        public ActivityOccurrenceService(ActivityRepo activityRepo, ChangedActivityRepo changedActivityRepo, ActivitySubscriptionRepo subscriptionrepo)
         {
             _activityRepo = activityRepo;
             _changedActivityRepo = changedActivityRepo;
-            _activitySubsRepo = activitySubRepo;
+            _activitySubsRepo = subscriptionrepo;
         }
         /// <summary>
         /// Gets all Activities and their recurrences from a specific date and x amount of days forward.
@@ -43,10 +45,7 @@ namespace Sir98Backend.Services
 
             bool filteredByMine = false;
 
-            //if (filter != null)
-            //{
-            //    (activities, filteredByMine) = ApplyFilters(activities, filter, userId);
-            //}
+            
 
             if (!string.IsNullOrWhiteSpace(filter))
             {
@@ -102,9 +101,8 @@ namespace Sir98Backend.Services
                 }
 
                 if (string.IsNullOrWhiteSpace(activity.Rrule)) //Rrule should never be null on a recurring activity. Will be skipped to avoid crashes.
-                {
                     continue;
-                }
+                
 
                 // For every Activity, generate its recurrences. For every activity and recurrence, check if theres a ChangedActivity and convert it to the Dto.
                 foreach (var (originalStartUtc, originalEndUtc) in
@@ -127,7 +125,7 @@ namespace Sir98Backend.Services
         /// Uses Ical.Net to expand the RRULE of a single Activity into UTC occurrences.
         /// </summary>
         private IEnumerable<(DateTimeOffset startUtc, DateTimeOffset endUtc)>
-       GenerateBaseOccurrences(Activity activity, DateTimeOffset fromUtc, DateTimeOffset toUtc)
+            GenerateBaseOccurrences(Activity activity, DateTimeOffset fromUtc, DateTimeOffset toUtc)
         {
             var fromLocal = TimeZoneInfo.ConvertTime(fromUtc, DanishZone).DateTime; //From today
             var toLocal = TimeZoneInfo.ConvertTime(toUtc, DanishZone).DateTime; //To today

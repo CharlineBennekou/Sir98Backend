@@ -11,14 +11,13 @@ namespace Sir98Backend.Models.DataTransferObjects
         /// Used to uniquely identify this occurrence when combined with the activityId
         /// This is not displayed in frontend.
         /// </summary>
-        public DateTimeOffset OriginalStartUtc { get; set; }
+        public DateTimeOffset? OriginalStartUtc { get; set; }
 
         /// <summary>
         /// The actual start time after applying any changes.
         /// For unchanged occurrences, this equals OriginalStartUtc.
         /// </summary>
         public DateTimeOffset StartUtc { get; set; }
-
         public DateTimeOffset EndUtc { get; set; }
 
         public string Title { get; set; } = "";
