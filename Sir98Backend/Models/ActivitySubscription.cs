@@ -1,7 +1,7 @@
 ﻿namespace Sir98Backend.Models
 {
     /// <summary>
-    /// This class represents a user's subscription to an activity. It connects a userId to the ActivityId they are subscribed to.
+    /// This class represents a user's subscription to an activity. It connects a userId to the ActivityId they are subscribed to. AllOccurrences indicates if the user is subscribed to all occurrences of a recurring activity. If false, it is a subscription to the specific occurrence identified by OriginalStartUtc.
     /// </summary>
     public class ActivitySubscription
     {
