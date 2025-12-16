@@ -54,7 +54,7 @@ namespace Sir98Backend.Controllers
                 await _userService.RegisterUserAsync(registration, activationToken);
 
                 string link =
-                    $"{Request.Scheme}://{Request.Host}{Request.PathBase}/api/User/Activate/code={activationToken}";
+                    $"{Request.Scheme}://sir98-frontend.vercel.app/activate?code={activationToken}";
 
                 MailMessage msg = _emailService.CreateEmail(
                     registration.Email,
