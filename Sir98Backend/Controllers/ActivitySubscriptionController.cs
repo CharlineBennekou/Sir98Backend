@@ -36,17 +36,25 @@ namespace Sir98Backend.Controllers
         [HttpPost]
         public async Task<ActionResult<ActivitySubscription>> Post([FromBody] ActivitySubscription subscription)
         {
-            if (req == null || string.IsNullOrWhiteSpace(req.UserId) || req.ActivityId <= 0)
+            if (subscription == null)
                 return BadRequest("userId and activityId are required.");
 
-            var subscription = new ActivitySubscription
-            {
-                UserId = req.UserId,
-                ActivityId = req.ActivityId,
-                OriginalStartUtc = req.OriginalStartUtc,
-                AllOccurrences = req.AllOccurrences
-            };
 
+            if (subscription == null)
+                return BadRequest("Body is required.");
+
+            if (string.IsNullOrWhiteSpace(subscription.UserId))
+                return BadRequest("UserId is required.");
+
+            if (subscription.ActivityId <= 0)
+                return BadRequest("ActivityId must be greater than 0.");
+
+            //if (subscription.OriginalStartUtc == null)
+            //    return BadRequest("OriginalStartUtc is required.");
+
+
+
+         
             if (subscription.ActivityId <= 0)
                 return BadRequest("ActivityId must be greater than 0.");
 
@@ -60,7 +68,7 @@ namespace Sir98Backend.Controllers
         }
 
         [HttpPost("unsubscribe")]
-        public IActionResult Unsubscribe([FromBody] SubscribeRequestDto req)
+        public async Task<IActionResult> UnsubscribeAsync([FromBody] SubscribeRequestDto sub)
         {
             if (sub == null)
                 return BadRequest("Body is required.");
@@ -68,8 +76,10 @@ namespace Sir98Backend.Controllers
             bool deleted = await _repository.DeleteAsync(
                 sub.UserId,
                 sub.ActivityId,
-                sub.OriginalStartUtc
-            );
+                (DateTimeOffset)sub.OriginalStartUtc
+
+            ) ;
+
 
             if (!deleted)
                 return NotFound("Subscription not found.");

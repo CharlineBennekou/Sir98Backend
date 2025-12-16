@@ -39,17 +39,8 @@ builder.Services.AddScoped<UserRepo>();
 
 builder.Services.AddScoped<ActivityOccurrenceService>();
 builder.Services.AddScoped<IUserService, UserService>();
-builder.Services.AddSingleton<ActivityRepo>(new ActivityRepo());
-builder.Services.AddSingleton<InstructorRepo>(new InstructorRepo());
-builder.Services.AddSingleton<ChangedActivityRepo>();
-//builder.Services.AddSingleton<ActivitySubscriptionRepo>();
-builder.Services.AddSingleton<UserRepo>();
-//builder.Services.AddScoped<ActivitySubscriptionService>();
 
 
-builder.Services.AddSingleton<ActivityOccurrenceService>();
-//builder.Services.AddSingleton<IActivitySubscriptionRepo, ActivitySubscriptionRepo> ();
-builder.Services.AddSingleton<ActivitySubscriptionRepo>();
 
 
 

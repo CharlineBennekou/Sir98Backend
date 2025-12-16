@@ -31,7 +31,7 @@ namespace Sir98Backend.Models.DataTransferObjects
 
         public bool Cancelled { get; set; }
 
-        public bool isSubscribed { get; set; }
+        public bool IsSubscribed { get; set; }
     }
 
 }

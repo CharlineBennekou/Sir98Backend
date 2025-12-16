@@ -5,7 +5,7 @@ using Sir98Backend.Repository.Interface;
 
 namespace Sir98Backend.Repository
 {
-    public class ActivitySubscriptionRepo : IActivitySubscriptionRepo
+    public class ActivitySubscriptionRepo
     {
         private readonly AppDbContext _context;
 
@@ -32,22 +32,17 @@ namespace Sir98Backend.Repository
         public async Task<ActivitySubscription?> AddAsync(ActivitySubscription subscription)
         {
             Console.WriteLine($"Repo.Add called: user={subscription.UserId}, act={subscription.ActivityId}, original={subscription.OriginalStartUtc}, all={subscription.AllOccurrences}");
-            if (subscription.AllOccurrences)
-            {
-                // Check duplicate series-subscription
-                var exists = _subscriptions.Any(s =>
-                s.UserId == subscription.UserId &&
-                    s.ActivityId == subscription.ActivityId &&
-                    s.AllOccurrences == true);
-                if (exists) return null;
+            if (subscription == null)
+                throw new ArgumentNullException(nameof(subscription));
 
             var alreadySubscribed = await _context.ActivitySubscriptions.AnyAsync(s =>
                 s.UserId == subscription.UserId &&
-                    s.ActivityId == subscription.ActivityId &&
-                    s.OriginalStartUtc == subscription.OriginalStartUtc);
+                s.ActivityId == subscription.ActivityId &&
+                s.OriginalStartUtc == subscription.OriginalStartUtc
+            );
 
-                if (exists) return null;
-            }
+            if (alreadySubscribed)
+                return null;
 
             _context.ActivitySubscriptions.Add(subscription);
             await _context.SaveChangesAsync();

@@ -16,8 +16,8 @@ namespace Sir98Backend.Services
     {
         private readonly ActivityRepo _activityRepo;
         private readonly ChangedActivityRepo _changedActivityRepo;
-        private readonly ActivitySubscriptionRepo _subscriptionRepo;
-        //private readonly IActivitySubscriptionRepo _subscriptionRepo;
+        private readonly ActivitySubscriptionRepo _activitySubsRepo;
+
 
         private static readonly TimeZoneInfo DanishZone =
             TimeZoneInfo.FindSystemTimeZoneById("Europe/Copenhagen");
@@ -28,7 +28,7 @@ namespace Sir98Backend.Services
         {
             _activityRepo = activityRepo;
             _changedActivityRepo = changedActivityRepo;
-            _subscriptionRepo = subscriptionrepo;
+            _activitySubsRepo = subscriptionrepo;
         }
         /// <summary>
         /// Gets all Activities and their recurrences from a specific date and x amount of days forward.
