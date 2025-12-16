@@ -14,6 +14,7 @@ using System.Text;
 namespace Sir98Backend.Controllers
 {
     [ApiController]
+    [EnableRateLimiting("userLoginRegisterForgot")]
     [Route("api/[controller]")]
     public class UserController : Controller
     {
@@ -36,7 +37,6 @@ namespace Sir98Backend.Controllers
         }
 
         [HttpPost("Register")]
-        [EnableRateLimiting("userLoginRegisterForgot")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<IActionResult> RegisterAccount([FromBody] RegisterAccount registration)
         {
@@ -74,7 +74,6 @@ namespace Sir98Backend.Controllers
         }
 
         [HttpPost("Login")]
-        [EnableRateLimiting("userLoginRegisterForgot")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Login([FromBody] UserCredentials credentials)
@@ -96,7 +95,6 @@ namespace Sir98Backend.Controllers
         }
 
         [HttpGet("Activate/code={code}")]
-        [EnableRateLimiting("userLoginRegisterForgot")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> ActivationLink(string code)
