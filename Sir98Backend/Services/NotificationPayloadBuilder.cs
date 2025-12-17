@@ -25,7 +25,7 @@ namespace Sir98Backend.Services
             {
                 Title = $"{activity.Title} {verbTitle}.",
                 Body = $"{activity.Title} den {danishDateTime} {verbBody}. Klik for at se mere.",
-                Url = "http://localhost:5173/account-settings"
+                Url = "http://localhost:5173/aktiviteter?type=mine"
             };
         }
 
