@@ -3,6 +3,7 @@ using Sir98Backend.Models;
 using Sir98Backend.Repository;
 using Sir98Backend.Data;
 using Microsoft.EntityFrameworkCore;
+using Sir98Backend.Services;
 
 namespace Sir98Backend.Controllers
 {
@@ -12,11 +13,13 @@ namespace Sir98Backend.Controllers
     {
         private readonly ActivityRepo _activityRepo;
         private readonly AppDbContext _context;
+        private readonly ActivityService _activityService;
 
-        public ActivityController(ActivityRepo activityRepo, AppDbContext context)
+        public ActivityController(ActivityRepo activityRepo, AppDbContext context, ActivityService activityService)
         {
             _activityRepo = activityRepo;
             _context = context; 
+            _activityService = activityService; 
         }
 
         // GET: api/Activity/Context
@@ -91,5 +94,31 @@ namespace Sir98Backend.Controllers
 
             return NoContent();
         }
+
+        // PUT: api/Activity/5/PutAndNotify
+        [HttpPut("{id}/PutAndNotify")]
+        public async Task<ActionResult<Activity>> PutAndNotify(int id, [FromBody] Activity activity)
+        {
+            if (activity == null)
+                return BadRequest("Body is required.");
+
+            var updated = await _activityService.PutAndNotifyAsync(id, activity);
+            if (updated == null)
+                return NotFound();
+
+            return Ok(updated);
+        }
+
+        // DELETE: api/Activity/5/DeleteAndNotify
+        [HttpDelete("{id}/DeleteAndNotify")]
+        public async Task<IActionResult> DeleteAndNotify(int id)
+        {
+            var deleted = await _activityService.DeleteAndNotifyAsync(id);
+            if (deleted == null)
+                return NotFound();
+
+            return NoContent();
+        }
+
     }
 }

@@ -104,7 +104,6 @@ namespace Sir98Backend.Data
                     .HasOne(s => s.User)
                     .WithMany(u => u.ActivitySubscriptions)
                     .HasForeignKey(s => s.UserId)
-                    .HasPrincipalKey(u => u.Email)   // User.Email is the PK
                     .OnDelete(DeleteBehavior.Cascade);
 
 
@@ -112,6 +111,11 @@ namespace Sir98Backend.Data
                 builder
                     .HasIndex(s => new { s.UserId, s.ActivityId, s.OriginalStartUtc })
                     .IsUnique();
+                // Speeds up "who is subscribed to this activity" lookups (NotificationService series-change case)
+                builder.HasIndex(s => s.ActivityId);
+                // Speeds up occurrence targeting (ActivityId + OriginalStartUtc) and helps filtering
+                builder.HasIndex(s => new { s.ActivityId, s.OriginalStartUtc, s.AllOccurrences });
+
             });
 
             // -------- Instructor --------
@@ -145,7 +149,7 @@ namespace Sir98Backend.Data
             {
                 builder.ToTable("Users");
 
-                builder.HasKey(u => u.Email); // string PK
+                builder.HasKey(u => u.Email); // Using Email as PK
 
                 builder.Property(u => u.Email)
                        .IsRequired()
@@ -222,6 +226,39 @@ namespace Sir98Backend.Data
                 // Prevent duplicates (matches your old in-memory checks)
                 builder.HasIndex(x => x.Email).IsUnique();
             });
+            // -------- PushSubscription --------
+            modelBuilder.Entity<PushSubscription>(builder =>
+            {
+                builder.ToTable("PushSubscriptions");
+
+                builder.HasKey(ps => ps.Id);
+
+                builder.Property(ps => ps.UserId)
+                    .IsRequired();
+
+                builder.Property(ps => ps.Endpoint)
+                    .IsRequired();
+
+                builder.Property(ps => ps.P256dh)
+                    .IsRequired();
+
+                builder.Property(ps => ps.Auth)
+                    .IsRequired();
+
+                builder.Property(ps => ps.CreatedAtUtc)
+                    .IsRequired();
+
+                builder.Property(ps => ps.LastUsedUtc)
+                    .IsRequired();
+
+                // One endpoint must only exist once in the system
+                builder.HasIndex(ps => ps.Endpoint)
+                    .IsUnique();
+
+                // Fast index for querying subscriptions by user
+                builder.HasIndex(ps => ps.UserId);
+            });
+
         }
     }
 }
