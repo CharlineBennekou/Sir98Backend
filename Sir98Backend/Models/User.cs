@@ -11,7 +11,7 @@ namespace Sir98Backend.Models
         
         public string Role { get; set; }
 
-        public ICollection<ActivitySubscription> ActivitySubscriptions { get; set; }
+        public ICollection<ActivitySubscription> ActivitySubscriptions { get; set; } = new List<ActivitySubscription>();
 
     }
 }

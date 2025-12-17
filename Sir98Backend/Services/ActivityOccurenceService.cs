@@ -8,7 +8,7 @@ using Org.BouncyCastle.Security;
 using Sir98Backend.Models;
 using Sir98Backend.Models.DataTransferObjects;
 using Sir98Backend.Repository;
-using Sir98Backend.Repository.Interface;
+using Sir98Backend.Interfaces;
 
 namespace Sir98Backend.Services
 {

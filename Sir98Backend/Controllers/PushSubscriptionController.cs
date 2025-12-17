@@ -1,122 +1,67 @@
-﻿using Microsoft.AspNetCore.Components;
+﻿// Sir98Backend/Controllers/PushSubscriptionController.cs
 using Microsoft.AspNetCore.Mvc;
-using Sir98Backend.Models;
+using Sir98Backend.Interfaces;
 using Sir98Backend.Models.DataTransferObjects;
-using WebPush;
-
 
 namespace Sir98Backend.Controllers
 {
     [ApiController]
-    [Microsoft.AspNetCore.Mvc.Route("api/[controller]")]
-    public class PushSubscriptionController : Controller
+    [Route("api/[controller]")]
+    public class PushSubscriptionController : ControllerBase
     {
-        public static class TestSubscriptionStore
+        private readonly IPushSubscriptionService _service;
+
+        public PushSubscriptionController(IPushSubscriptionService service)
         {
-            public static List<PushSubscriptionDto> Subscriptions { get; } = new();
+            _service = service ?? throw new ArgumentNullException(nameof(service));
         }
 
-        // In a real app you’d inject this via DI / config
-        private readonly VapidConfig _vapidConfig = new VapidConfig
+        [HttpPost]
+        public async Task<IActionResult> Upsert([FromBody] PushSubscriptionDto dto)
         {
-            Subject = "mailto:you@example.com",
-            PublicKey = "BDVzVxg_Qd8OqCOHLmA4EAxxF_FQ8qAAv-jYmWSfxofkIWe69EZgJFl2lk-U18kbE6s-Jp9j7v-VrT8eEQDTarQ", //you may look here, but dont look below
-            PrivateKey = "YxDoIeaf7SapX-Ye2qFOPpsNU9A0cxmmdz0vCtWvGxg" //dont look, avert your eyes
-        };
-
-        [HttpGet("generate-vapid")]
-        public IActionResult GenerateVapid()
-        {
-            var keys = VapidHelper.GenerateVapidKeys();
-            return Ok(new
-            {
-                PublicKey = keys.PublicKey,
-                PrivateKey = keys.PrivateKey
-            });
-        }
-
-
-
-        /// <summary>
-        /// Frontend calls this once per device to store its push subscription.
-        /// </summary>
-        [HttpPost("addtotest")]
-        public IActionResult AddToTest([FromBody] PushSubscriptionDto subscription)
-        {
-            if (subscription == null ||
-                string.IsNullOrWhiteSpace(subscription.Endpoint) ||
-                string.IsNullOrWhiteSpace(subscription.P256dh) ||
-                string.IsNullOrWhiteSpace(subscription.Auth))
+            if (dto == null ||
+                string.IsNullOrWhiteSpace(dto.UserId) ||
+                string.IsNullOrWhiteSpace(dto.Endpoint) ||
+                string.IsNullOrWhiteSpace(dto.P256dh) ||
+                string.IsNullOrWhiteSpace(dto.Auth))
             {
                 return BadRequest("Invalid subscription data.");
             }
 
-            // For now: just add to in-memory list (no deduplication)
-            TestSubscriptionStore.Subscriptions.Add(subscription);
-
-            return Ok(new { message = "Subscription added to test list." });
+            await _service.UpsertAsync(dto.UserId, dto.Endpoint, dto.P256dh, dto.Auth);
+            return NoContent();
         }
 
-        /// <summary>
-        /// Sends a test push notification to all stored test subscriptions.
-        /// You can call this with a simple POST (no body needed).
-        /// </summary>
-        [HttpPost("pushall")]
-        public IActionResult PushAll()
+        [HttpDelete]
+        public async Task<IActionResult> Remove([FromQuery] string userId, [FromQuery] string endpoint)
         {
-            if (!TestSubscriptionStore.Subscriptions.Any())
-            {
+            if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(endpoint))
+                return BadRequest("userId and endpoint are required.");
+
+            await _service.RemoveAsync(userId, endpoint);
+            return NoContent();
+        }
+
+        // Dev/test endpoint (optional)
+        [HttpPost("pushall")]
+        public async Task<IActionResult> PushAll()
+        {
+            var result = await _service.PushAllAsync(
+                title: "Test notifikation",
+                body: "Modtaget push fra pushall(dev metode)",
+                url: "http://localhost:5173/aktiviteter"
+            );
+
+            if (result.TotalAttempted == 0)
                 return Ok(new { message = "No subscriptions to notify." });
-            }
-
-            var webPushClient = new WebPushClient();
-            var vapidDetails = new VapidDetails(
-                _vapidConfig.Subject,
-                _vapidConfig.PublicKey,
-                _vapidConfig.PrivateKey);
-
-            // Simple message payload – what the service worker will receive.
-            var payload = new
-            {
-                title = "Test notification",
-                body = "Hello from SubscriptionController.PushAll 🎉",
-                url = "/"
-            };
-            var payloadJson = System.Text.Json.JsonSerializer.Serialize(payload);
-
-            var failed = new List<string>();
-
-            foreach (var sub in TestSubscriptionStore.Subscriptions.ToList())
-            {
-                var pushSubscription = new WebPush.PushSubscription(
-                    sub.Endpoint,
-                    sub.P256dh,
-                    sub.Auth);
-
-                try
-                {
-                    webPushClient.SendNotification(pushSubscription, payloadJson, vapidDetails);
-                }
-                catch (WebPushException ex)
-                {
-                    // If subscription is invalid/expired, remove it
-                    if (ex.StatusCode == System.Net.HttpStatusCode.Gone ||
-                        ex.StatusCode == System.Net.HttpStatusCode.NotFound)
-                    {
-                        TestSubscriptionStore.Subscriptions.Remove(sub);
-                    }
-
-                    failed.Add(sub.Endpoint);
-                }
-            }
 
             return Ok(new
             {
                 message = "PushAll triggered.",
-                total = TestSubscriptionStore.Subscriptions.Count,
-                failed = failed.Count
+                totalAttempted = result.TotalAttempted,
+                failed = result.Failed,
+                removedExpired = result.RemovedExpired
             });
         }
-    
-}
+    }
 }
