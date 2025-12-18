@@ -9,16 +9,16 @@ public class Instructor
         [Key] // corrected casing for attribute
         public int Id { get; set; }
 
-        [Required, MaxLength(100)]
+        [MaxLength(100)]
         public string Email { get; set; }
 
-        [Required, MaxLength(100)]
+        [MaxLength(100)]
         public string Number { get; set; }
 
         [Required, MaxLength(100)]
         public string FirstName { get; set; }
 
-        [Required, MaxLength(100)]
+        [MaxLength(500)]
         public string Image { get; set; }
 
         // many instructors to many activities
