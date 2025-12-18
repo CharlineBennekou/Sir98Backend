@@ -12,8 +12,8 @@ using Sir98Backend.Data;
 namespace Sir98Backend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20251216075850_RealDatabase")]
-    partial class RealDatabase
+    [Migration("20251218090943_Rebuild")]
+    partial class Rebuild
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -120,6 +120,9 @@ namespace Sir98Backend.Migrations
                     b.Property<int>("ActivityId")
                         .HasColumnType("int");
 
+                    b.Property<bool>("AllOccurrences")
+                        .HasColumnType("bit");
+
                     b.Property<DateTimeOffset>("OriginalStartUtc")
                         .HasColumnType("datetimeoffset");
 
@@ -130,6 +133,8 @@ namespace Sir98Backend.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ActivityId");
+
+                    b.HasIndex("ActivityId", "OriginalStartUtc", "AllOccurrences");
 
                     b.HasIndex("UserId", "ActivityId", "OriginalStartUtc")
                         .IsUnique();
@@ -229,9 +234,15 @@ namespace Sir98Backend.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
                     b.Property<string>("Endpoint")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTimeOffset>("LastUsedUtc")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("P256dh")
                         .IsRequired()
@@ -239,11 +250,16 @@ namespace Sir98Backend.Migrations
 
                     b.Property<string>("UserId")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.HasKey("Id");
 
-                    b.ToTable("PushSubscriptions");
+                    b.HasIndex("Endpoint")
+                        .IsUnique();
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("PushSubscriptions", (string)null);
                 });
 
             modelBuilder.Entity("Sir98Backend.Models.User", b =>

@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Sir98Backend.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class Rebuild : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -56,10 +56,12 @@ namespace Sir98Backend.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    UserId = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Endpoint = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    Endpoint = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     P256dh = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Auth = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    Auth = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    CreatedAtUtc = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
+                    LastUsedUtc = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -77,6 +79,20 @@ namespace Sir98Backend.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Users", x => x.Email);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "UsersAwaitingActivation",
+                columns: table => new
+                {
+                    ActivationCode = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: false),
+                    Email = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: false),
+                    HashedPassword = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ExpirationDate = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UsersAwaitingActivation", x => x.ActivationCode);
                 });
 
             migrationBuilder.CreateTable(
@@ -138,7 +154,8 @@ namespace Sir98Backend.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     UserId = table.Column<string>(type: "nvarchar(256)", nullable: false),
                     ActivityId = table.Column<int>(type: "int", nullable: false),
-                    OriginalStartUtc = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false)
+                    OriginalStartUtc = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
+                    AllOccurrences = table.Column<bool>(type: "bit", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -192,6 +209,11 @@ namespace Sir98Backend.Migrations
                 column: "ActivityId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_ActivitySubscriptions_ActivityId_OriginalStartUtc_AllOccurrences",
+                table: "ActivitySubscriptions",
+                columns: new[] { "ActivityId", "OriginalStartUtc", "AllOccurrences" });
+
+            migrationBuilder.CreateIndex(
                 name: "IX_ActivitySubscriptions_UserId_ActivityId_OriginalStartUtc",
                 table: "ActivitySubscriptions",
                 columns: new[] { "UserId", "ActivityId", "OriginalStartUtc" },
@@ -207,6 +229,23 @@ namespace Sir98Backend.Migrations
                 name: "IX_ChangedActivityInstructor_NewInstructorsId",
                 table: "ChangedActivityInstructor",
                 column: "NewInstructorsId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PushSubscriptions_Endpoint",
+                table: "PushSubscriptions",
+                column: "Endpoint",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PushSubscriptions_UserId",
+                table: "PushSubscriptions",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UsersAwaitingActivation_Email",
+                table: "UsersAwaitingActivation",
+                column: "Email",
+                unique: true);
         }
 
         /// <inheritdoc />
@@ -223,6 +262,9 @@ namespace Sir98Backend.Migrations
 
             migrationBuilder.DropTable(
                 name: "PushSubscriptions");
+
+            migrationBuilder.DropTable(
+                name: "UsersAwaitingActivation");
 
             migrationBuilder.DropTable(
                 name: "Users");
