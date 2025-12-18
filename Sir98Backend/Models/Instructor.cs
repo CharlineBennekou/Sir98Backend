@@ -6,20 +6,15 @@ namespace Sir98Backend.Models
 /// </summary>
 public class Instructor
     {
-        [Key] // corrected casing for attribute
         public int Id { get; set; }
 
-        [MaxLength(100)]
-        public string Email { get; set; }
+        public string? Email { get; set; }
 
-        [MaxLength(100)]
-        public string Number { get; set; }
+        public string? Number { get; set; }
 
-        [Required, MaxLength(100)]
         public string FirstName { get; set; }
 
-        [MaxLength(500)]
-        public string Image { get; set; }
+        public string? Image { get; set; }
 
         // many instructors to many activities
         public ICollection<Activity> Activities { get; set; } =new List<Activity>();
