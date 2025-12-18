@@ -17,10 +17,10 @@ public class Instructor
         public string? Image { get; set; }
 
         // many instructors to many activities
-        public ICollection<Activity> Activities { get; set; } =new List<Activity>();
+        public ICollection<Activity>? Activities { get; set; } =new List<Activity>();
 
         // Adding this just to follow the pattern, but I doubt we will use it..
-        public ICollection<ChangedActivity> ChangedActivities { get; set; } = new List<ChangedActivity>();
+        public ICollection<ChangedActivity>? ChangedActivities { get; set; } = new List<ChangedActivity>();
 
     }
 }

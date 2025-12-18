@@ -25,7 +25,7 @@ namespace Sir98Backend.Models.DataTransferObjects
         public string? Image { get; set; } 
         public string? Link { get; set; } 
         public string? Description { get; set; }
-        public List<Instructor>? Instructors { get; set; }
+        public List<InstructorDto>? Instructors { get; set; }
 
         public string? Tag { get; set; } = "";
 
