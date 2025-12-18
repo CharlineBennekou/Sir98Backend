@@ -31,6 +31,7 @@ namespace Sir98Backend.Repository
         public async Task<Activity?> GetByIdAsync(int id)
             => await _context.Activities
                 .AsNoTracking()
+                .Include(a => a.Instructors)
                 .FirstOrDefaultAsync(a => a.Id == id);
 
         /// <summary>

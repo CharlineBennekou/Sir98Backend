@@ -4,6 +4,7 @@ using Sir98Backend.Repository;
 using Sir98Backend.Data;
 using Microsoft.EntityFrameworkCore;
 using Sir98Backend.Services;
+using Sir98Backend.Models.DataTransferObjects;
 
 namespace Sir98Backend.Controllers
 {
@@ -14,13 +15,17 @@ namespace Sir98Backend.Controllers
         private readonly ActivityRepo _activityRepo;
         private readonly AppDbContext _context;
         private readonly ActivityService _activityService;
+        private readonly InstructorRepo _instructorRepo;
 
-        public ActivityController(ActivityRepo activityRepo, AppDbContext context, ActivityService activityService)
+        public ActivityController(ActivityRepo activityRepo, AppDbContext context, ActivityService activityService, InstructorRepo instructorRepo)
         {
-            _activityRepo = activityRepo;
-            _context = context; 
-            _activityService = activityService; 
+            _activityRepo = activityRepo ?? throw new ArgumentNullException(nameof(activityRepo));
+            _context = context ?? throw new ArgumentNullException(nameof(context));
+            _activityService = activityService ?? throw new ArgumentNullException(nameof(activityService));
+            _instructorRepo = instructorRepo ?? throw new ArgumentNullException(nameof(instructorRepo));
         }
+
+
 
         // GET: api/Activity/Context
         [HttpGet("Context")]
@@ -56,12 +61,14 @@ namespace Sir98Backend.Controllers
 
         // POST: api/Activity
         [HttpPost]
-        public async Task<ActionResult<Activity>> Post([FromBody] Activity activity)
+        public async Task<ActionResult<Activity>> Post([FromBody] ActivityDto activity)
         {
             if (activity == null)
                 return BadRequest("Body is required.");
+            
+            
 
-            var created = await _activityRepo.AddAsync(activity);
+            var created = await _activityRepo.AddAsync(await MapActivityDTO(activity));
 
             return CreatedAtAction(
                 nameof(GetById),
@@ -72,16 +79,42 @@ namespace Sir98Backend.Controllers
 
         // PUT: api/Activity/5
         [HttpPut("{id}")]
-        public async Task<ActionResult<Activity>> Put(int id, [FromBody] Activity activity)
+        public async Task<ActionResult<Activity>> Put(int id, [FromBody] ActivityDto activity)
         {
             if (activity == null)
                 return BadRequest("Body is required.");
 
-            var updated = await _activityRepo.UpdateAsync(id, activity);
+            var updated = await _activityRepo.UpdateAsync(id, await MapActivityDTO(activity));
             if (updated == null)
                 return NotFound();
 
             return Ok(updated);
+        }
+
+        private async Task<Activity> MapActivityDTO(ActivityDto activity)
+        {
+            List<Instructor> instructors = new();
+            List<Instructor> availableInstructors = await _instructorRepo.GetAllAsyncTracking();
+            foreach (int instructorID in activity.InstructorIds)
+            {
+                instructors.Add(availableInstructors.FirstOrDefault((instructor) => instructor.Id == instructorID));
+            }
+            Activity newActivity = new()
+            {
+                Title = activity.Title,
+                StartUtc = activity.StartUtc,
+                EndUtc = activity.EndUtc,
+                Address = activity.Address,
+                Image = activity.Image,
+                Link = activity.Link,
+                Cancelled = activity.Cancelled,
+                Description = activity.Description,
+                Instructors = instructors,
+                Tag = activity.Tag,
+                IsRecurring = activity.IsRecurring,
+                Rrule = activity.Rrule,
+            };
+            return newActivity;
         }
 
         // DELETE: api/Activity/5

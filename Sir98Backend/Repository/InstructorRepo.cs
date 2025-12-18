@@ -20,6 +20,12 @@ namespace Sir98Backend.Repository
                 .ToListAsync();
         }
 
+        public Task<List<Instructor>> GetAllAsyncTracking()
+        {
+            return _context.Instructors
+                .ToListAsync();
+        }
+
         public Task<Instructor?> GetByIdAsync(int id)
         {
             return _context.Instructors
