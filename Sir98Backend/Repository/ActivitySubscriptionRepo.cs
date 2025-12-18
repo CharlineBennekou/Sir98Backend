@@ -2,6 +2,7 @@
 using Sir98Backend.Data;
 using Sir98Backend.Models;
 using Sir98Backend.Interfaces;
+using Sir98Backend.Models.DataTransferObjects;
 
 namespace Sir98Backend.Repository
 {
@@ -29,44 +30,85 @@ namespace Sir98Backend.Repository
                 .ToListAsync();
         }
 
-        public async Task<ActivitySubscription?> AddAsync(ActivitySubscription subscription)
+        public async Task<ActivitySubscription?> AddAsync(ActivitySubscriptionPostDto dto)
         {
-            Console.WriteLine($"Repo.Add called: user={subscription.UserId}, act={subscription.ActivityId}, original={subscription.OriginalStartUtc}, all={subscription.AllOccurrences}");
-            if (subscription == null)
-                throw new ArgumentNullException(nameof(subscription));
+            if (dto == null)
+                throw new ArgumentNullException(nameof(dto));
 
-            var alreadySubscribed = await _context.ActivitySubscriptions.AnyAsync(s =>
-                s.UserId == subscription.UserId &&
-                s.ActivityId == subscription.ActivityId &&
-                s.OriginalStartUtc == subscription.OriginalStartUtc
-            );
+            // Duplicate check depends on subscription type
+            var alreadySubscribed = dto.AllOccurrences
+                ? await _context.ActivitySubscriptions.AnyAsync(s =>
+                    s.UserId == dto.UserId &&
+                    s.ActivityId == dto.ActivityId &&
+                    s.AllOccurrences == true
+                  )
+                : await _context.ActivitySubscriptions.AnyAsync(s =>
+                    s.UserId == dto.UserId &&
+                    s.ActivityId == dto.ActivityId &&
+                    s.AllOccurrences == false &&
+                    s.OriginalStartUtc == dto.OriginalStartUtc
+                  );
 
             if (alreadySubscribed)
                 return null;
 
-            _context.ActivitySubscriptions.Add(subscription);
+            // Map DTO -> Entity
+            var entity = new ActivitySubscription
+            {
+                UserId = dto.UserId,
+                ActivityId = dto.ActivityId,
+                AllOccurrences = dto.AllOccurrences,
+                OriginalStartUtc = dto.OriginalStartUtc
+            };
+
+            _context.ActivitySubscriptions.Add(entity);
             await _context.SaveChangesAsync();
 
-            return subscription;
+            return entity;
         }
 
-        public async Task<bool> DeleteAsync(string userId, int activityId, DateTimeOffset originalStartUtc)
+
+        /// <summary>
+        /// This method attempts first assumes the subscription to delete is for a single occurrence (AllOccurrences == false).
+        /// If it cannot find such a subscription, it then attempts to delete an all-occurrences subscription (AllOccurrences == true).
+        /// </summary>
+        /// <param name="subscription"></param>
+        /// <returns></returns>
+        public async Task<bool> DeleteAsync(ActivitySubscriptionDeleteDto subscription)
         {
-            var existing = await _context.ActivitySubscriptions.FirstOrDefaultAsync(s =>
-                s.UserId == userId &&
-                s.ActivityId == activityId &&
-                s.OriginalStartUtc == originalStartUtc
+            // 1) Try delete the specific occurrence but only if AllOccurrences is false
+            if (subscription.OriginalStartUtc != null)
+            {
+                var single = await _context.ActivitySubscriptions.FirstOrDefaultAsync(s =>
+                    s.UserId == subscription.UserId &&
+                    s.ActivityId == subscription.ActivityId &&
+                    s.AllOccurrences == false &&
+                    s.OriginalStartUtc == subscription.OriginalStartUtc
+                );
+
+                if (single != null)
+                {
+                    _context.ActivitySubscriptions.Remove(single);
+                    await _context.SaveChangesAsync();
+                    return true;
+                }
+            }
+
+            // 2) If not found, we assume it's an all-occurrences subscription
+            var all = await _context.ActivitySubscriptions.FirstOrDefaultAsync(s =>
+                s.UserId == subscription.UserId &&
+                s.ActivityId == subscription.ActivityId &&
+                s.AllOccurrences == true
             );
 
-            if (existing == null)
+            if (all == null)
                 return false;
 
-            _context.ActivitySubscriptions.Remove(existing);
+            _context.ActivitySubscriptions.Remove(all);
             await _context.SaveChangesAsync();
-
             return true;
-
-            
         }
+
+
     }
 }
