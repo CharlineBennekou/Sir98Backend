@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Sir98Backend.Models;
 using Sir98Backend.Models.DataTransferObjects;
 using Sir98Backend.Repository;
@@ -34,12 +35,8 @@ namespace Sir98Backend.Controllers
 
         // POST: api/ActivitySubscription
         [HttpPost]
-        public async Task<ActionResult<ActivitySubscription>> Post([FromBody] ActivitySubscription subscription)
+        public async Task<ActionResult<ActivitySubscription>> Post([FromBody] ActivitySubscriptionPostDto subscription)
         {
-            if (subscription == null)
-                return BadRequest("userId and activityId are required.");
-
-
             if (subscription == null)
                 return BadRequest("Body is required.");
 
@@ -49,36 +46,40 @@ namespace Sir98Backend.Controllers
             if (subscription.ActivityId <= 0)
                 return BadRequest("ActivityId must be greater than 0.");
 
-            //if (subscription.OriginalStartUtc == null)
-            //    return BadRequest("OriginalStartUtc is required.");
+            if (!subscription.AllOccurrences && subscription.OriginalStartUtc == default)
+                return BadRequest("OriginalStartUtc is required for non-all-occurrence subscriptions.");
 
+            try
+            {
+                var created = await _repository.AddAsync(subscription);
 
+                if (created == null)
+                    return Conflict("Already subscribed.");
 
-         
-            if (subscription.ActivityId <= 0)
-                return BadRequest("ActivityId must be greater than 0.");
-
-            var created = await _repository.AddAsync(subscription);
-
-            // If repo returns null when already subscribed:
-            if (created == null)
-                return Conflict("Already subscribed.");
-
-            return Created($"api/ActivitySubscription/{created.Id}", created);
+                return Created($"api/ActivitySubscription/{created.Id}", created);
+            }
+            catch (DbUpdateException)
+            {
+                // real DB issue (FK/constraint/db down/etc) -> not "Already subscribed"
+                return StatusCode(500, "Database error while creating subscription.");
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, "Unexpected error while creating subscription.");
+            }
         }
 
-        [HttpPost("unsubscribe")]
-        public async Task<IActionResult> UnsubscribeAsync([FromBody] SubscribeRequestDto sub)
+
+        [HttpDelete]
+        public async Task<IActionResult> UnsubscribeAsync([FromBody] ActivitySubscriptionDeleteDto subscription)
         {
-            if (sub == null)
+            if (subscription == null)
                 return BadRequest("Body is required.");
 
-            bool deleted = await _repository.DeleteAsync(
-                sub.UserId,
-                sub.ActivityId,
-                (DateTimeOffset)sub.OriginalStartUtc
+            if (string.IsNullOrWhiteSpace(subscription.UserId))
+                return BadRequest("UserId is required.");
 
-            ) ;
+            bool deleted = await _repository.DeleteAsync(subscription);
 
 
             if (!deleted)
