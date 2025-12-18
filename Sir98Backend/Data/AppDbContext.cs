@@ -126,11 +126,9 @@ namespace Sir98Backend.Data
                 builder.HasKey(i => i.Id);
 
                 builder.Property(i => i.Email)
-                       .IsRequired()
                        .HasMaxLength(100);
 
                 builder.Property(i => i.Number)
-                       .IsRequired()
                        .HasMaxLength(100);
 
                 builder.Property(i => i.FirstName)
@@ -138,8 +136,7 @@ namespace Sir98Backend.Data
                        .HasMaxLength(100);
 
                 builder.Property(i => i.Image)
-                       .IsRequired()
-                       .HasMaxLength(100);
+                       .HasMaxLength(500);
 
                 // many-to-many with activities configured in Activity entity
             });
