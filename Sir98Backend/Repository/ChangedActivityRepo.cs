@@ -22,6 +22,15 @@ namespace Sir98Backend.Repository
                 .ToListAsync();
         }
 
+        public async Task<List<ChangedActivity>> GetAllInclInstructorsAsync()
+        {
+            return await _context.ChangedActivities
+                .AsNoTracking()
+                .Include(c => c.NewInstructors)
+                .ToListAsync();
+        }
+
+
         public async Task<ChangedActivity?> GetByIdAsync(int id)
         {
             return await _context.ChangedActivities

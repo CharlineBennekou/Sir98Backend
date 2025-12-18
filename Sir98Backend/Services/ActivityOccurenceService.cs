@@ -41,7 +41,7 @@ namespace Sir98Backend.Services
         {
             var toUtc = fromUtc.AddDays(days); //Calculates the EndDate based on how many days from the parameter
 
-            IEnumerable<Activity> activities = await _activityRepo.GetAllAsync(); //Gets all activities from repo
+            IEnumerable<Activity> activities = await _activityRepo.GetAllInclInstructorsAsync(); //Gets all activities from repo
 
             bool filteredByMine = false;
 
