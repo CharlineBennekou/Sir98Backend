@@ -101,6 +101,8 @@ namespace Sir98Backend.Repository
         public async Task<Activity?> UpdateAsync(int id, Activity activity)
         {
             var existing = await _context.Activities
+                //to update instrcutors they must be included
+                .Include(a => a.Instructors)
                 .FirstOrDefaultAsync(a => a.Id == id);
 
             if (existing == null) return null;
@@ -113,10 +115,16 @@ namespace Sir98Backend.Repository
             existing.Link = activity.Link;
             existing.Cancelled = activity.Cancelled;
             existing.Description = activity.Description;
-            existing.Instructors = activity.Instructors;
             existing.Tag = activity.Tag;
             existing.IsRecurring = activity.IsRecurring;
             existing.Rrule = activity.Rrule;
+
+            //remove previous instructors and add the new ones
+            existing.Instructors.Clear();
+            foreach(var instructor in activity.Instructors)
+            {
+                existing.Instructors.Add(instructor);
+            }
 
             await _context.SaveChangesAsync();
             return existing;
