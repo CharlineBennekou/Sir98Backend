@@ -26,11 +26,15 @@ namespace Sir98Backend.Services
         /// </summary>
         public async Task NotifyUsersAboutSeriesChangeAsync(int activityId, NotificationPayload payload)
         {
-            var userIds = await GetUserIdsForSeriesChangeAsync(activityId);
-            if (!userIds.Any()) return;
+            List<string> userIds = (await GetUserIdsForSeriesChangeAsync(activityId)).ToList();
+            foreach(var email in userIds)
+            {
+                Console.WriteLine(email);
+            }
+            if (userIds.Count() == 0) return;
 
-            var pushSubscriptions = await GetPushSubscriptionsForUserIdsAsync(userIds);
-            if (!pushSubscriptions.Any()) return;
+            List<PushSubscription> pushSubscriptions = await GetPushSubscriptionsForUserIdsAsync(userIds);
+            if (pushSubscriptions.Count() == 0) return;
 
             await SendMessageToPushSubscriptionsAsync(pushSubscriptions, payload);
         }

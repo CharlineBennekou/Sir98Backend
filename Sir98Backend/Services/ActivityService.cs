@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Sir98Backend.Data;
 using Sir98Backend.Models;
+using Sir98Backend.Repository;
 
 namespace Sir98Backend.Services
 {
@@ -9,14 +10,15 @@ namespace Sir98Backend.Services
         private readonly AppDbContext _context;
         private readonly NotificationService _notificationService;
         private readonly ActivityNotificationPayloadBuilder _payloadBuilder;
+        private readonly ActivityRepo _activityRepo;
 
-        public ActivityService(AppDbContext context, NotificationService notificationService, ActivityNotificationPayloadBuilder payloadBuilder)
+        public ActivityService(AppDbContext context, NotificationService notificationService, ActivityNotificationPayloadBuilder payloadBuilder, ActivityRepo activityRepo)
         {
-            _context = context;
-            _notificationService = notificationService;
-            _payloadBuilder = payloadBuilder;
+            _context = context ?? throw new ArgumentNullException(nameof(context));
+            _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
+            _payloadBuilder = payloadBuilder ?? throw new ArgumentNullException(nameof(payloadBuilder));
+            _activityRepo = activityRepo ?? throw new ArgumentNullException(nameof(activityRepo));
         }
-
 
         public async Task<Activity> CreateAsync(Activity activity)
         {
@@ -72,7 +74,7 @@ namespace Sir98Backend.Services
 
         public async Task<Activity?> PutAndNotifyAsync(int id, Activity activity)
         {
-            var updated = await PutAsync(id, activity);
+            var updated = await _activityRepo.UpdateAsync(id, activity);
             if (updated == null)
                 return null;
 
