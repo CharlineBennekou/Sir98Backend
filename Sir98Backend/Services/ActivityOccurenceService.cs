@@ -5,10 +5,11 @@ using Ical.Net.Evaluation;
 using Microsoft.AspNetCore.Components;
 using Org.BouncyCastle.Bcpg;
 using Org.BouncyCastle.Security;
+using Sir98Backend.Interfaces;
 using Sir98Backend.Models;
 using Sir98Backend.Models.DataTransferObjects;
 using Sir98Backend.Repository;
-using Sir98Backend.Interfaces;
+using System.Linq;
 
 namespace Sir98Backend.Services
 {
@@ -51,7 +52,7 @@ namespace Sir98Backend.Services
             {
                 string normalizedFilter = filter.Trim().ToLower();
 
-                // if filter is "mine" and userId is provided, return only subscribed activities
+                // if filter is "mine" and userId is provided, return only subscribed activities(subscribed to series or to an occurrence in the serie)
                 if (normalizedFilter == "mine" && userId != null)
                 {
                     filteredByMine = true;
@@ -113,8 +114,15 @@ namespace Sir98Backend.Services
             }
             if (userId != null)
             {
-                SetToSubscribed(result, filteredByMine, userId);
+                await SetToSubscribed(result, userId);
             }
+            if (filter == "mine")
+            {
+                result = result 
+                    .Where(o => o.IsSubscribed)
+                    .ToList();
+            }
+
 
             return result
                 .OrderBy(o => o.StartUtc)
@@ -165,87 +173,83 @@ namespace Sir98Backend.Services
         /// Combine Activity + ChangedActivity to produce a DTO for one occurrence.
         /// </summary>
         private void AddOccurrence(
-            Activity activity,
-            DateTimeOffset originalStartUtc,
-            DateTimeOffset originalEndUtc,
-            Dictionary<(int ActivityId, DateTimeOffset OriginalStartUtc), ChangedActivity> changeLookup,
-            List<ActivityOccurrenceDto> result)
+    Activity activity,
+    DateTimeOffset originalStartUtc,
+    DateTimeOffset originalEndUtc,
+    Dictionary<(int ActivityId, DateTimeOffset OriginalStartUtc), ChangedActivity> changeLookup,
+    List<ActivityOccurrenceDto> result)
         {
-            if (changeLookup.TryGetValue((activity.Id, originalStartUtc), out var change))
-            {
+            ChangedActivity? change;
+            bool hasChange = changeLookup.TryGetValue((activity.Id, originalStartUtc), out change);
 
-                var start = change.NewStartUtc ?? originalStartUtc;
-                var end = change.NewEndUtc ?? originalEndUtc;
+            DateTimeOffset start = hasChange && change!.NewStartUtc.HasValue ? change.NewStartUtc.Value : originalStartUtc;
+            DateTimeOffset end = hasChange && change!.NewEndUtc.HasValue ? change.NewEndUtc.Value : originalEndUtc;
 
-                var title = change.NewTitle ?? activity.Title;
-                var description = change.NewDescription ?? activity.Description;
-                var address = change.NewAddress ?? activity.Address;
-                var instructors = change.NewInstructors ?? activity.Instructors;
-                var tag = change.NewTag ?? activity.Tag;
+            string title = hasChange && !string.IsNullOrWhiteSpace(change!.NewTitle) ? change.NewTitle! : activity.Title;
+            string? description = hasChange ? (change!.NewDescription ?? activity.Description) : activity.Description;
+            string? address = hasChange ? (change!.NewAddress ?? activity.Address) : activity.Address;
+            string? tag = hasChange ? (change!.NewTag ?? activity.Tag) : activity.Tag;
 
-
-                result.Add(new ActivityOccurrenceDto
+            IEnumerable<Instructor>? instructors = hasChange? (change!.NewInstructors ?? activity.Instructors): activity.Instructors;
+            List<InstructorDto> instructorDtos = (instructors ?? Enumerable.Empty<Instructor>())
+                .Select(i => new InstructorDto
                 {
-                    ActivityId = activity.Id,
-                    OriginalStartUtc = originalStartUtc,
-                    StartUtc = start,
-                    EndUtc = end,
-                    Title = title,
-                    Description = description,
-                    Address = address ?? "",
-                    Image = activity.Image,
-                    Link = activity.Link,
-                    Instructors = instructors?.ToList(),
-                    Tag = tag ?? "",
-                    Cancelled = change.IsCancelled
-                });
-            }
-            else
+                    FirstName = i.FirstName,
+                    Email = i.Email,
+                    Number = i.Number,
+                    Image = i.Image
+                })
+                .ToList();
+
+            result.Add(new ActivityOccurrenceDto
             {
-                // No change: just use the activity data
-                result.Add(new ActivityOccurrenceDto
-                {
-                    ActivityId = activity.Id,
-                    OriginalStartUtc = originalStartUtc,
-                    StartUtc = originalStartUtc,
-                    EndUtc = originalEndUtc,
-                    Title = activity.Title,
-                    Description = activity.Description,
-                    Address = activity.Address,
-                    Image = activity.Image,
-                    Link = activity.Link,
-                    Instructors = activity.Instructors?.ToList(),
-                    Tag = activity.Tag ?? "",
-                    Cancelled = activity.Cancelled
-                });
-            }
+                ActivityId = activity.Id,
+                OriginalStartUtc = originalStartUtc,
+                StartUtc = start,
+                EndUtc = end,
+                Title = title,
+                Description = description,
+                Address = address ?? "",
+                Image = activity.Image,
+                Link = activity.Link,
+                Instructors = instructorDtos,
+                Tag = tag ?? "",
+                Cancelled = hasChange ? change!.IsCancelled : activity.Cancelled
+            });
         }
 
 
-
-
-
-
-
-        private async Task SetToSubscribed(List<ActivityOccurrenceDto> result, bool filteredByMine, string userId)
+        private async Task SetToSubscribed(List<ActivityOccurrenceDto> result, string userId)
         {
-            if (filteredByMine)
-            {
-                foreach (var occurrence in result)
-                    occurrence.IsSubscribed = true;
+            IEnumerable<ActivitySubscription> subs =
+                await _activitySubsRepo.GetByUserIdAsync(userId);
 
-                return;
-            }
-
-            var subs = await _activitySubsRepo.GetByUserIdAsync(userId);
-
-            var subscribedActivityIds = subs
+            HashSet<int> allOccurrenceActivityIds = subs
+                .Where(s => s.AllOccurrences)
                 .Select(s => s.ActivityId)
                 .ToHashSet();
 
-            foreach (var occurrence in result)
-                occurrence.IsSubscribed = subscribedActivityIds.Contains(occurrence.ActivityId);
+            HashSet<(int ActivityId, DateTimeOffset OriginalStartUtc)> singleOccurrenceKeys = subs
+                .Where(s => !s.AllOccurrences)
+                .Select(s => (s.ActivityId, s.OriginalStartUtc))
+                .ToHashSet();
+
+            foreach (ActivityOccurrenceDto occurrence in result)
+            {
+                occurrence.IsSubscribed =
+                   allOccurrenceActivityIds.Contains(occurrence.ActivityId) 
+                   || singleOccurrenceKeys.Contains((occurrence.ActivityId, occurrence.OriginalStartUtc!.Value));
+
+            }
         }
+
+
+
+
+
+
+
+
 
     }
 
