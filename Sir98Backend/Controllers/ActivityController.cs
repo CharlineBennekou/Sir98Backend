@@ -130,12 +130,12 @@ namespace Sir98Backend.Controllers
 
         // PUT: api/Activity/5/PutAndNotify
         [HttpPut("{id}/PutAndNotify")]
-        public async Task<ActionResult<Activity>> PutAndNotify(int id, [FromBody] Activity activity)
+        public async Task<ActionResult<Activity>> PutAndNotify(int id, [FromBody] ActivityDto activity)
         {
             if (activity == null)
                 return BadRequest("Body is required.");
 
-            var updated = await _activityService.PutAndNotifyAsync(id, activity);
+            var updated = await _activityService.PutAndNotifyAsync(id, await MapActivityDTO(activity));
             if (updated == null)
                 return NotFound();
 
