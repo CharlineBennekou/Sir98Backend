@@ -49,8 +49,16 @@ namespace Sir98Backend.Controllers
             
 
             var fromUtc = (from ?? DateTimeOffset.UtcNow).ToUniversalTime();
-
-            var occurrences = await _service.GetOccurrencesAsync(fromUtc, days, filter, userId);
+            IEnumerable<ActivityOccurrenceDto> occurrences = new List<ActivityOccurrenceDto>();
+            try
+            {
+                occurrences = await _service.GetOccurrencesAsync(fromUtc, days, filter, userId);
+            } catch(Exception e)
+            {
+                Console.WriteLine("SKETE EN FEJL HER");
+                Console.WriteLine(e);
+            }
+            
 
             return Ok(occurrences);
 

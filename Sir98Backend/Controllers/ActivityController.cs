@@ -65,10 +65,18 @@ namespace Sir98Backend.Controllers
         {
             if (activity == null)
                 return BadRequest("Body is required.");
-            
-            
 
-            var created = await _activityRepo.AddAsync(await MapActivityDTO(activity));
+
+            Activity mappedActivity;
+            try
+            {
+                mappedActivity = await MapActivityDTO(activity);
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+            var created = await _activityRepo.AddAsync(mappedActivity);
 
             return CreatedAtAction(
                 nameof(GetById),
@@ -83,8 +91,16 @@ namespace Sir98Backend.Controllers
         {
             if (activity == null)
                 return BadRequest("Body is required.");
+            Activity mappedActivity;
+            try
+            {
+                mappedActivity = await MapActivityDTO(activity);
+            } catch(Exception e)
+            {
+                return BadRequest(e.Message);
+            }
 
-            var updated = await _activityRepo.UpdateAsync(id, await MapActivityDTO(activity));
+            var updated = await _activityRepo.UpdateAsync(id,mappedActivity);
             if (updated == null)
                 return NotFound();
 
@@ -99,6 +115,11 @@ namespace Sir98Backend.Controllers
             {
                 instructors.Add(availableInstructors.FirstOrDefault((instructor) => instructor.Id == instructorID));
             }
+            if(activity.StartUtc.ToUnixTimeMilliseconds() >= activity.EndUtc.ToUnixTimeMilliseconds())
+            {
+                throw new Exception("Start must be before end");
+            }
+
             Activity newActivity = new()
             {
                 Title = activity.Title,
@@ -135,7 +156,17 @@ namespace Sir98Backend.Controllers
             if (activity == null)
                 return BadRequest("Body is required.");
 
-            var updated = await _activityService.PutAndNotifyAsync(id, await MapActivityDTO(activity));
+            Activity mappedActivity;
+            try
+            {
+                mappedActivity = await MapActivityDTO(activity);
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+
+            var updated = await _activityService.PutAndNotifyAsync(id, mappedActivity);
             if (updated == null)
                 return NotFound();
 

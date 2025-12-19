@@ -100,10 +100,17 @@ namespace Sir98Backend.Services
             if (userIds.Count == 0)
                 return new List<PushSubscription>();
 
-            return await _context.PushSubscriptions
+            try
+            {
+                return await _context.PushSubscriptions
                 .AsNoTracking()
                 .Where(ps => userIds.Contains(ps.UserId))
                 .ToListAsync();
+            } catch(Exception e)
+            {
+                Console.WriteLine(e);
+                return new List<PushSubscription>();
+            }
         }
         /// <summary>
         /// Uses the PushSender to send the given payload to the list of PushSubscriptions. Then applies the result to the PushSubscriptionService to clean up invalid subscriptions.

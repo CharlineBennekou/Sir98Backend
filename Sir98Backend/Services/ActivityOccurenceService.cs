@@ -135,6 +135,7 @@ namespace Sir98Backend.Services
         private IEnumerable<(DateTimeOffset startUtc, DateTimeOffset endUtc)>
             GenerateBaseOccurrences(Activity activity, DateTimeOffset fromUtc, DateTimeOffset toUtc)
         {
+            Console.WriteLine(activity.Id);
             var fromLocal = TimeZoneInfo.ConvertTime(fromUtc, DanishZone).DateTime; //From today
             var toLocal = TimeZoneInfo.ConvertTime(toUtc, DanishZone).DateTime; //To today
 
@@ -152,9 +153,12 @@ namespace Sir98Backend.Services
             var fromLocalCal = new CalDateTime(fromLocal, DanishTzId); //Converts to CalDateTime
             var toLocalCal = new CalDateTime(toLocal, DanishTzId); //Converts to CalDateTime
 
+            Console.WriteLine(fromLocalCal.ToString());
+            Console.WriteLine(toLocalCal.ToString());
+
             var occurrences = calendarEvent
                 .GetOccurrences(fromLocalCal)       // Starts taking occurrences from here
-                .TakeWhileBefore(toLocalCal);       // Starts taking occurrences until here
+                .TakeWhileBefore(toLocalCal).ToList();       // Starts taking occurrences until here
 
 
             foreach (var occ in occurrences) //For each occurence generated, we convert back to UTC and yield return
