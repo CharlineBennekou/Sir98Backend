@@ -91,7 +91,7 @@ namespace Sir98Backend.Controllers
                 return Unauthorized(invalidAuth);
 
             string signingKey = _configuration.GetValue<string>("JwtSettings:SigningKey");
-            return Ok($"Bearer {_tokenService.GenerateJWToken(user, signingKey)}\n{user.Role}");
+            return Ok($"Bearer {_tokenService.GenerateJWToken(user, signingKey)}\n{user.Role}\n{user.Email}");
         }
 
         [HttpGet("Activate/code={code}")]
