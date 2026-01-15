@@ -54,7 +54,7 @@ namespace Sir98Backend.Controllers
                 await _userService.RegisterUserAsync(registration, activationToken);
 
                 string link =
-                    $"https://sir98-frontend.vercel.app/Activate?code={activationToken}";
+                    $"https://app.mnoergaard.dk/code?code={activationToken}";
 
                 MailMessage msg = _emailService.CreateEmail(
                     registration.Email,
