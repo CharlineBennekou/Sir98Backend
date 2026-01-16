@@ -66,6 +66,7 @@ namespace Sir98Backend.Controllers
             catch(Exception e)
             {
                 Console.WriteLine(e);
+                return StatusCode(500, e.Message);
                 // Intentionally swallow details: still return generic response
                 // (You should log the exception internally)
             }

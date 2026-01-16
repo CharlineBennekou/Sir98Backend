@@ -12,9 +12,9 @@ namespace Sir98Backend.Services
 
         public EmailService(IConfiguration configuration)
         {
-            Email = configuration.GetValue<string>("EmailServer:Email");
-            Password = configuration.GetValue<string>("EmailServer:Password");
-            Host = configuration.GetValue<string>("EmailServer:Host");
+            Email = configuration.GetValue<string>("EmailServer:Email") ?? throw new Exception();
+            Password = configuration.GetValue<string>("EmailServer:Password") ?? throw new Exception();
+            Host = configuration.GetValue<string>("EmailServer:Host") ?? throw new Exception();
             Port = configuration.GetValue<int>("EmailServer:Port");
 
             Console.WriteLine("Appsettings " + Email + " " + Password + " " + Host + " " + Port);
@@ -49,7 +49,7 @@ namespace Sir98Backend.Services
             catch (Exception ex)
             {
                 Console.WriteLine("An unexpected error has occurred: " + ex.Message);
-                throw;
+                throw new ApplicationException("Exception has occurred: " + ex.Message, ex);
             }
         }
         public MailMessage CreateEmail(string receiverEmail, string subject, string message)
