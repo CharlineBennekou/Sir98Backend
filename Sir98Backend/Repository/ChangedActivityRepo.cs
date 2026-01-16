@@ -86,5 +86,28 @@ namespace Sir98Backend.Repository
 
             return existing;
         }
+
+        public async Task<ChangedActivity?> GetByActivityAndOriginalStartAsync(
+            int activityId,
+            DateTimeOffset originalStartUtc)
+        {
+            return await _context.ChangedActivities
+                .Include(c => c.NewInstructors)
+                .FirstOrDefaultAsync(c =>
+                    c.ActivityId == activityId &&
+                    c.OriginalStartUtc == originalStartUtc);
+        }
+
+        // 🔹 DEN MANGLER
+        public void Add(ChangedActivity entity)
+        {
+            _context.ChangedActivities.Add(entity);
+        }
+
+        // 🔹 DEN MANGLER
+        public async Task SaveAsync()
+        {
+            await _context.SaveChangesAsync();
+        }
     }
 }
