@@ -28,40 +28,6 @@ namespace Sir98Backend.Controllers
         }
 
 
-        //[HttpGet()]
-        //public async Task<ActionResult<EditOccurrenceDto>> GetForEdit(
-        //[FromQuery] int activityId,
-        //[FromQuery] DateTimeOffset originalStartUtc)
-        //{
-        //    var activity = await _activityRepo.GetByIdAsync(activityId);
-        //    if (activity == null)
-        //        return NotFound();
-
-        //    var change = await _changedActivityRepo
-        //        .GetByActivityAndOriginalStartAsync(activityId, originalStartUtc);
-
-        //    // Brug eksisterende logik
-        //    var start = change?.NewStartUtc ?? originalStartUtc;
-        //    var end = change?.NewEndUtc ??
-        //              originalStartUtc + (activity.EndUtc - activity.StartUtc);
-
-        //    return Ok(new EditOccurrenceDto
-        //    {
-        //        ActivityId = activityId,
-        //        OriginalStartUtc = originalStartUtc,
-        //        StartUtc = start,
-        //        EndUtc = end,
-        //        Title = change?.NewTitle ?? activity.Title,
-        //        Description = change?.NewDescription ?? activity.Description,
-        //        Address = change?.NewAddress ?? activity.Address,
-        //        Tag = change?.NewTag ?? activity.Tag,
-        //        IsCancelled = change?.IsCancelled ?? false,
-        //        InstructorIds = (change?.NewInstructors ?? activity.Instructors)
-        //            .Select(i => i.Id)
-        //            .ToList()
-        //    });
-        //}
-
         [HttpPost]
         public async Task<IActionResult> UpsertOccurrence([FromBody] EditOccurrenceDto dto)
         {
