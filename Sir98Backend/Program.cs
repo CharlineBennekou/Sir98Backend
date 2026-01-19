@@ -31,7 +31,6 @@ builder.Services.AddScoped<ActivityRepo>();
 builder.Services.AddScoped<ActivitySubscriptionRepo>();
 builder.Services.AddScoped<ChangedActivityRepo>();
 builder.Services.AddScoped<InstructorRepo>();
-builder.Services.AddScoped<UserRepo>();
 
 //services
 builder.Services.AddScoped<ActivityOccurrenceService>();
