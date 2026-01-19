@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Sir98Backend.Interfaces;
 using Sir98Backend.Models;
 using Sir98Backend.Models.DataTransferObjects;
 using Sir98Backend.Repository;
@@ -12,13 +13,20 @@ namespace Sir98Backend.Controllers
     {
         private readonly ActivityRepo _activityRepo;
         private readonly ChangedActivityRepo _changedActivityRepo;
+        private readonly IOccurrenceSnapshotResolver _occurrenceResolver;
+        private readonly ActivityNotificationPayloadBuilder _payloadBuilder;
+        private readonly NotificationService _notificationService;
 
-        public ChangedActivityController( ActivityRepo activityRepo, ChangedActivityRepo changedActivityRepo)
+        public ChangedActivityController( ActivityRepo activityRepo, ChangedActivityRepo changedActivityRepo, IOccurrenceSnapshotResolver occurrenceResolver, NotificationService notificationService, ActivityNotificationPayloadBuilder payloadBuilder)
         {
            
             _activityRepo = activityRepo;
             _changedActivityRepo = changedActivityRepo;
+            _occurrenceResolver = occurrenceResolver;
+            _payloadBuilder = payloadBuilder;
+            _notificationService = notificationService;
         }
+
 
         //[HttpGet()]
         //public async Task<ActionResult<EditOccurrenceDto>> GetForEdit(
@@ -54,17 +62,19 @@ namespace Sir98Backend.Controllers
         //    });
         //}
 
-        [HttpPost()]
+        [HttpPost]
         public async Task<IActionResult> UpsertOccurrence([FromBody] EditOccurrenceDto dto)
         {
+            // BEFORE: resolve what the user currently sees
+            var before = await _occurrenceResolver.ResolveAsync(dto.ActivityId, dto.OriginalStartUtc);
+
             var existing = await _changedActivityRepo
                 .GetByActivityAndOriginalStartAsync(dto.ActivityId, dto.OriginalStartUtc);
 
-            if (existing == null) 
+            if (existing == null)
             {
                 existing = new ChangedActivity
                 {
-
                     ActivityId = dto.ActivityId,
                     OriginalStartUtc = dto.OriginalStartUtc,
                     NewStartUtc = dto.StartUtc,
@@ -75,10 +85,11 @@ namespace Sir98Backend.Controllers
                     NewTag = dto.Tag,
                     IsCancelled = dto.IsCancelled
                 };
+
                 _changedActivityRepo.Add(existing);
             }
             else
-            {                 // Update existing
+            {
                 existing.NewStartUtc = dto.StartUtc;
                 existing.NewEndUtc = dto.EndUtc;
                 existing.NewTitle = dto.Title;
@@ -86,16 +97,22 @@ namespace Sir98Backend.Controllers
                 existing.NewAddress = dto.Address;
                 existing.NewTag = dto.Tag;
                 existing.IsCancelled = dto.IsCancelled;
-
             }
-
-           
 
             await _changedActivityRepo.SaveAsync();
 
+            // AFTER: resolve what the user will see now (base + updated override)
+            var after = await _occurrenceResolver.ResolveAsync(dto.ActivityId, dto.OriginalStartUtc);
+
+            // Build + notify
+            var isSeries = true; // Since we are in ChangedActivity, it will always be a series change
+            var payload = _payloadBuilder.BuildUpdatePayload(before, after, isSeries);
+
+            await _notificationService.NotifyUsersAboutSeriesChangeAsync(dto.ActivityId, payload);
 
             return Ok();
         }
+
 
     }
 }

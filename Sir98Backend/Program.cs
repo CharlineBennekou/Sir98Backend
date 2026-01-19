@@ -36,7 +36,6 @@ builder.Services.AddScoped<UserRepo>();
 //services
 builder.Services.AddScoped<ActivityOccurrenceService>();
 builder.Services.AddScoped<ActivityService>();
-builder.Services.AddSingleton<ActivityNotificationPayloadBuilder>();
 builder.Services.AddScoped<IPushSubscriptionService, PushSubscriptionService>();
 builder.Services.AddScoped<IPushSender, PushSender>();
 builder.Services.AddScoped<NotificationService>();
@@ -45,6 +44,7 @@ builder.Services.AddSingleton<EmailService>();
 builder.Services.AddSingleton<TokenService>();
 builder.Services.AddScoped<ActivityNotificationPayloadBuilder>();
 builder.Services.AddSingleton<IDateTimeFormatter, DateTimeFormatter>();
+builder.Services.AddScoped<IOccurrenceSnapshotResolver, OccurrenceSnapshotResolver>();
 
 
 
