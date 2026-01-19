@@ -1,45 +1,130 @@
-﻿using Sir98Backend.Models;
+﻿using Sir98Backend.Interfaces;
+using Sir98Backend.Models;
+using Sir98Backend.Models.DataTransferObjects;
 
 namespace Sir98Backend.Services
 {
     public class ActivityNotificationPayloadBuilder
     {
-        // Denmark time zone id differs by OS
-        // Windows: "Romance Standard Time"
-        // Linux (common in Azure): "Europe/Copenhagen"
-        private static readonly TimeZoneInfo DanishTz = ResolveDanishTimeZone();
+        private readonly IDateTimeFormatter _dateTime;
 
-        public NotificationPayload BuildSeriesChange(Activity activity)
+        public ActivityNotificationPayloadBuilder(IDateTimeFormatter dateTime)
         {
-            var local = TimeZoneInfo.ConvertTime(activity.StartUtc, DanishTz);
+            _dateTime = dateTime;
+        }
 
-            // Example format: 26-03-2026 13:00
-            var danishDateTime = local.ToString("dd-MM-yyyy HH:mm");
-
-            var isCancelled = activity.Cancelled;
-
-            var verbTitle = isCancelled ? "er blevet aflyst" : "er blevet ændret";
-            var verbBody = isCancelled ? "er blevet aflyst" : "er blevet ændret";
+        public NotificationPayload BuildUpdatePayload(OccurrenceSnapshot before, OccurrenceSnapshot after, bool isSeries)
+        {
+            var title = BuildTitle(before, after, isSeries);
+            var body = BuildBody(before, after);
 
             return new NotificationPayload
             {
-                Title = $"{activity.Title} {verbTitle}.",
-                Body = $"{activity.Title} den {danishDateTime} {verbBody}. Klik for at se mere.",
-                Url = "http://localhost:5173/aktiviteter?type=mine"
+                Title = title,
+                Body = $"{after.Title}\n{body}",
+                Url = "app.mnoergaard.dk/aktiviteter?type=mine"
             };
         }
 
-        private static TimeZoneInfo ResolveDanishTimeZone()
+        public string BuildTitle(OccurrenceSnapshot before, OccurrenceSnapshot after, bool isSeries)
         {
-            // Try common ids across Windows + Linux
-            try { return TimeZoneInfo.FindSystemTimeZoneById("Europe/Copenhagen"); }
-            catch { /* ignore */ }
+            var verbTitle = after.IsCancelled
+                ? "er blevet aflyst"
+                : "er blevet ændret";
 
-            try { return TimeZoneInfo.FindSystemTimeZoneById("Romance Standard Time"); }
-            catch { /* ignore */ }
+            if (isSeries)
+            {
+                return $"Fremtidige {after.Title}-sessioner {verbTitle}.";
+            }
 
-            // Fallback: if not found, default to UTC to avoid crashing
-            return TimeZoneInfo.Utc; //Todo: should probably log this somewhere.
+            var danishDateTime = _dateTime.DanishDateTime(after.StartUtc);
+            return $"{after.Title} den {danishDateTime} {verbTitle}.";
         }
+
+        public string BuildBody(OccurrenceSnapshot before, OccurrenceSnapshot after)
+        {
+            var changes = new List<string>();
+            //Title
+            if (!string.Equals(before.Title, after.Title, StringComparison.Ordinal))
+            {
+                changes.Add($"Titel er ændret fra \"{before.Title}\" til \"{after.Title}\".");
+            }
+
+            //Description
+            if (!string.Equals(before.Description, after.Description, StringComparison.Ordinal))
+            {
+                changes.Add($"Beskrivelse er til \"{after.Description ?? "-"}\".");
+            }
+
+            //Address
+            if (!string.Equals(before.Address, after.Address, StringComparison.Ordinal))
+            {
+                changes.Add($"Adresse er ændret fra \"{before.Address ?? "-"}\" til \"{after.Address ?? "-"}\".");
+            }
+
+            //DateTime
+            AddDateTimeChange(changes, "Start", before.StartUtc, after.StartUtc);
+            AddDateTimeChange(changes, "Slut", before.EndUtc, after.EndUtc);
+
+            //Instructors
+            var beforeSet = before.InstructorIds?.ToHashSet() ?? new HashSet<int>();
+            var afterSet = after.InstructorIds?.ToHashSet() ?? new HashSet<int>();
+
+            if (!beforeSet.SetEquals(afterSet))
+            {
+                changes.Add("Instruktører er blevet ændret.");
+            }
+
+            if (changes.Count == 0)
+                return "Der er ingen ændringer at vise.";
+
+            // Join changes with new lines
+            return string.Join("\n", changes);
+        }
+
+        /// <summary>
+        /// Method used in BuildBody to add date/time changes to the changes list.
+        /// </summary>
+        /// <param name="changes"></param>
+        /// <param name="label"></param>
+        /// <param name="beforeUtc"></param>
+        /// <param name="afterUtc"></param>
+        private void AddDateTimeChange(List<string> changes, string label, DateTimeOffset beforeUtc, DateTimeOffset afterUtc)
+        {
+            var beforeLocal = _dateTime.ToDanishLocal(beforeUtc);
+            var afterLocal = _dateTime.ToDanishLocal(afterUtc);
+
+            var dateChanged = beforeLocal.Date != afterLocal.Date;
+            var timeChanged = beforeLocal.TimeOfDay != afterLocal.TimeOfDay;
+
+            if (!dateChanged && !timeChanged)
+                return;
+
+            if (dateChanged && timeChanged)
+            {
+                changes.Add(
+                    $"{label} er rykket fra {_dateTime.DanishDateTime(beforeUtc)} " +
+                    $"til {_dateTime.DanishDateTime(afterUtc)}."
+                );
+                return;
+            }
+
+            if (dateChanged)
+            {
+                changes.Add(
+                    $"{label}dato er ændret fra {_dateTime.DanishDate(beforeUtc)} " +
+                    $"til {_dateTime.DanishDate(afterUtc)}."
+                );
+                return;
+            }
+
+            // timeChanged only
+            changes.Add(
+                $"{label}tid er rykket fra {_dateTime.DanishTime(beforeUtc)} " +
+                $"til {_dateTime.DanishTime(afterUtc)}."
+            );
+        }
+
+
     }
 }

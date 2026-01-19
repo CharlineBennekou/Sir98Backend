@@ -20,8 +20,4 @@
     <PackageReference Include="WebPush" Version="1.0.12" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Interface\" />
-  </ItemGroup>
-
 </Project>

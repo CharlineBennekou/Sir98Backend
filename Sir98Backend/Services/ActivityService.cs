@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Sir98Backend.Data;
 using Sir98Backend.Models;
+using Sir98Backend.Models.DataTransferObjects;
 using Sir98Backend.Repository;
 
 namespace Sir98Backend.Services
@@ -72,18 +73,62 @@ namespace Sir98Backend.Services
 
         // ---- New methods: update/delete + notify ----
 
+        //public async Task<Activity?> PutAndNotifyAsync(int id, Activity activity)
+        //{
+        //    var updated = await _activityRepo.UpdateAsync(id, activity);
+        //    if (updated == null)
+        //        return null;
+
+        //    var payload = _payloadBuilder.BuildSeriesChange(updated);
+
+        //    await _notificationService.NotifyUsersAboutSeriesChangeAsync(updated.Id, payload);
+
+        //    return updated;
+        //}
         public async Task<Activity?> PutAndNotifyAsync(int id, Activity activity)
         {
+            //Load from database so we have a before
+            var existing = await _activityRepo.GetByIdAsync(id);
+            if (existing == null)
+                return null;
+            var beforeUpdate = await MapToOccurrenceSnapshot(existing);
+
+            //Update
             var updated = await _activityRepo.UpdateAsync(id, activity);
             if (updated == null)
                 return null;
 
-            var payload = _payloadBuilder.BuildSeriesChange(updated);
+            //Save the after
+            OccurrenceSnapshot afterUpdate = await MapToOccurrenceSnapshot(activity);
+            //It is a series if tag = Series. Otherwise it's a one time event.
+            bool IsSeries = updated.Tag == "Træning";
+            var payload = _payloadBuilder.BuildUpdatePayload(beforeUpdate, afterUpdate, IsSeries);
 
             await _notificationService.NotifyUsersAboutSeriesChangeAsync(updated.Id, payload);
 
             return updated;
         }
+
+        public Task<OccurrenceSnapshot> MapToOccurrenceSnapshot(Activity activity)
+        {
+            var snapshot = new OccurrenceSnapshot(
+                activityId: activity.Id,
+                originalStartUtc: null,
+                isCancelled: false,
+                startUtc: activity.StartUtc,
+                endUtc: activity.EndUtc,
+                title: activity.Title,
+                description: activity.Description,
+                address: activity.Address,
+                instructorIds: activity.Instructors
+                    .Select(i => i.Id)
+                    .ToList(),
+                tag: activity.Tag
+            );
+
+            return Task.FromResult(snapshot);
+        }
+
 
         public async Task<Activity?> DeleteAndNotifyAsync(int id)
         {
