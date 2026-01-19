@@ -68,6 +68,7 @@ namespace Sir98Backend.Controllers
         [HttpGet("future")]
         public async Task<ActionResult<IEnumerable<ActivityOccurrenceDto>>> GetFuture(
             [FromQuery] DateTimeOffset? fromUtc = null)
+
         {
             var start = (fromUtc ?? DateTimeOffset.UtcNow).ToUniversalTime();
 
