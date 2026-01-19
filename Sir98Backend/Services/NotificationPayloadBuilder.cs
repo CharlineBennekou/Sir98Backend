@@ -16,12 +16,12 @@ namespace Sir98Backend.Services
         public NotificationPayload BuildUpdatePayload(OccurrenceSnapshot before, OccurrenceSnapshot after, bool isSeries)
         {
             var title = BuildTitle(before, after, isSeries);
-            var body = BuildBody(before, after);
+            var body = BuildBody(before, after, isSeries);
 
             return new NotificationPayload
             {
                 Title = title,
-                Body = $"{after.Title}\n{body}",
+                Body = body,
                 Url = "app.mnoergaard.dk/aktiviteter?type=mine"
             };
         }
@@ -41,7 +41,7 @@ namespace Sir98Backend.Services
             return $"{after.Title} den {danishDateTime} {verbTitle}.";
         }
 
-        public string BuildBody(OccurrenceSnapshot before, OccurrenceSnapshot after)
+        public string BuildBody(OccurrenceSnapshot before, OccurrenceSnapshot after, bool isSeries)
         {
             var changes = new List<string>();
             //Title
@@ -53,7 +53,7 @@ namespace Sir98Backend.Services
             //Description
             if (!string.Equals(before.Description, after.Description, StringComparison.Ordinal))
             {
-                changes.Add($"Beskrivelse er til \"{after.Description ?? "-"}\".");
+                changes.Add($"Beskrivelse er ændret til \"{after.Description ?? "-"}\".");
             }
 
             //Address
@@ -63,8 +63,9 @@ namespace Sir98Backend.Services
             }
 
             //DateTime
-            AddDateTimeChange(changes, "Start", before.StartUtc, after.StartUtc);
-            AddDateTimeChange(changes, "Slut", before.EndUtc, after.EndUtc);
+            AddDateTimeChange(changes, "Start", before.StartUtc, after.StartUtc, isSeries);
+            AddDateTimeChange(changes, "Slut", before.EndUtc, after.EndUtc, isSeries);
+
 
             //Instructors
             var beforeSet = before.InstructorIds?.ToHashSet() ?? new HashSet<int>();
@@ -89,7 +90,7 @@ namespace Sir98Backend.Services
         /// <param name="label"></param>
         /// <param name="beforeUtc"></param>
         /// <param name="afterUtc"></param>
-        private void AddDateTimeChange(List<string> changes, string label, DateTimeOffset beforeUtc, DateTimeOffset afterUtc)
+        private void AddDateTimeChange(List<string> changes, string label, DateTimeOffset beforeUtc, DateTimeOffset afterUtc, bool isSeries)
         {
             var beforeLocal = _dateTime.ToDanishLocal(beforeUtc);
             var afterLocal = _dateTime.ToDanishLocal(afterUtc);
@@ -100,30 +101,48 @@ namespace Sir98Backend.Services
             if (!dateChanged && !timeChanged)
                 return;
 
+            // If it’s a series, show weekday instead of full date when "date" changed
+            string BeforeDatePart() => isSeries ? _dateTime.DanishWeekday(beforeUtc) : _dateTime.DanishDate(beforeUtc);
+            string AfterDatePart() => isSeries ? _dateTime.DanishWeekday(afterUtc) : _dateTime.DanishDate(afterUtc);
+
+            // Combined line if both changed
             if (dateChanged && timeChanged)
             {
-                changes.Add(
-                    $"{label} er rykket fra {_dateTime.DanishDateTime(beforeUtc)} " +
-                    $"til {_dateTime.DanishDateTime(afterUtc)}."
-                );
+                if (isSeries)
+                {
+                    // Weekday + time is most meaningful for a series
+                    changes.Add(
+                        $"{label} er rykket fra {BeforeDatePart()} kl. {_dateTime.DanishTime(beforeUtc)} " +
+                        $"til {AfterDatePart()} kl. {_dateTime.DanishTime(afterUtc)}."
+                    );
+                }
+                else
+                {
+                    // Full datetime is best for one-off
+                    changes.Add(
+                        $"{label} er rykket fra {_dateTime.DanishDateTime(beforeUtc)} " +
+                        $"til {_dateTime.DanishDateTime(afterUtc)}."
+                    );
+                }
+
                 return;
             }
 
+            // Date/weekday only
             if (dateChanged)
             {
-                changes.Add(
-                    $"{label}dato er ændret fra {_dateTime.DanishDate(beforeUtc)} " +
-                    $"til {_dateTime.DanishDate(afterUtc)}."
-                );
+                // Better Danish nouns than $"{label}dato"
+                var dateLabel = label == "Slut" ? "Slutdag" : "Startdag";
+
+                changes.Add($"{dateLabel} er ændret fra {BeforeDatePart()} til {AfterDatePart()}.");
                 return;
             }
 
-            // timeChanged only
-            changes.Add(
-                $"{label}tid er rykket fra {_dateTime.DanishTime(beforeUtc)} " +
-                $"til {_dateTime.DanishTime(afterUtc)}."
-            );
+            // Time only
+            var timeLabel = label == "Slut" ? "Sluttid" : "Starttid";
+            changes.Add($"{timeLabel} er rykket fra {_dateTime.DanishTime(beforeUtc)} til {_dateTime.DanishTime(afterUtc)}.");
         }
+
 
 
     }

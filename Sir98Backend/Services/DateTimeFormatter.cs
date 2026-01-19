@@ -37,6 +37,12 @@ namespace Sir98Backend.Services
             return local.ToString("HH:mm", _culture);
         }
 
+        public string DanishWeekday(DateTimeOffset utc)
+        {
+            var local = ToDanishLocal(utc);
+            return local.ToString("dddd", _culture);
+        }
+
         // Denmark time zone id differs by OS
         // Windows: "Romance Standard Time"
         // Linux (common in Azure): "Europe/Copenhagen"
@@ -50,5 +56,6 @@ namespace Sir98Backend.Services
 
             return TimeZoneInfo.Utc; // TODO: log warning
         }
+
     }
 }
