@@ -12,8 +12,8 @@ using Sir98Backend.Data;
 namespace Sir98Backend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20251218090943_Rebuild")]
-    partial class Rebuild
+    [Migration("20260119152551_ChangedActivityIndexFix")]
+    partial class ChangedActivityIndexFix
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -183,7 +183,7 @@ namespace Sir98Backend.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ActivityId")
+                    b.HasIndex("ActivityId", "OriginalStartUtc")
                         .IsUnique();
 
                     b.ToTable("ChangedActivities", (string)null);
@@ -198,7 +198,6 @@ namespace Sir98Backend.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Email")
-                        .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
@@ -208,12 +207,10 @@ namespace Sir98Backend.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("Image")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<string>("Number")
-                        .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
@@ -360,9 +357,10 @@ namespace Sir98Backend.Migrations
             modelBuilder.Entity("Sir98Backend.Models.ChangedActivity", b =>
                 {
                     b.HasOne("Sir98Backend.Models.Activity", "Activity")
-                        .WithOne("ChangedActivity")
-                        .HasForeignKey("Sir98Backend.Models.ChangedActivity", "ActivityId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .WithMany("ChangedActivities")
+                        .HasForeignKey("ActivityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Activity");
                 });
@@ -371,7 +369,7 @@ namespace Sir98Backend.Migrations
                 {
                     b.Navigation("ActivitySubscriptions");
 
-                    b.Navigation("ChangedActivity");
+                    b.Navigation("ChangedActivities");
                 });
 
             modelBuilder.Entity("Sir98Backend.Models.User", b =>

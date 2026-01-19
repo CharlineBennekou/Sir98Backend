@@ -105,7 +105,7 @@ namespace Sir98Backend.Controllers
             var after = await _occurrenceResolver.ResolveAsync(dto.ActivityId, dto.OriginalStartUtc);
 
             // Build + notify
-            var isSeries = true; // Since we are in ChangedActivity, it will always be a series change
+            var isSeries = false; // Since we are in ChangedActivity, it will always be a change to a single occurrence
             var payload = _payloadBuilder.BuildUpdatePayload(before, after, isSeries);
 
             await _notificationService.NotifyUsersAboutSeriesChangeAsync(dto.ActivityId, payload);
