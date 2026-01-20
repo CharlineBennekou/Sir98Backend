@@ -5,11 +5,13 @@ using Sir98Backend.Data;
 using Microsoft.EntityFrameworkCore;
 using Sir98Backend.Services;
 using Sir98Backend.Models.DataTransferObjects;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Sir98Backend.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Roles = "Instructor")]
     public class ActivityController : ControllerBase
     {
         private readonly ActivityRepo _activityRepo;
@@ -29,19 +31,21 @@ namespace Sir98Backend.Controllers
 
         // GET: api/Activity/Context
         [HttpGet("Context")]
+        [AllowAnonymous]
         public async Task<ActionResult<IEnumerable<Activity>>> GetAllContext()
         {
             var activities = await _context.Activities
        .AsNoTracking()
        .Include(a => a.Instructors)
        .Include(a => a.ActivitySubscriptions)
-       .Include(a => a.ChangedActivity)
+       .Include(a => a.ChangedActivities)
        .ToListAsync();
             return Ok(activities);
         }
 
         // GET: api/Activity
         [HttpGet]
+        [AllowAnonymous]
         public async Task<ActionResult<IEnumerable<Activity>>> GetAll()
         {
             var activities = await _activityRepo.GetAllInclAllAsync();
@@ -50,6 +54,7 @@ namespace Sir98Backend.Controllers
 
         // GET: api/Activity/5
         [HttpGet("{id}")]
+        [AllowAnonymous]
         public async Task<ActionResult<Activity>> GetById(int id)
         {
             var activity = await _activityRepo.GetByIdAsync(id);

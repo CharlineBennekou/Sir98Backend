@@ -79,7 +79,7 @@ namespace Sir98Backend.Services
 
 
 
-            var changes = await _changedActivityRepo.GetAllAsync();
+            var changes = await _changedActivityRepo.GetAllInclInstructorsAsync();
 
             // (ActivityId, OriginalStartUtc) -> ChangedActivity
             var changeLookup = changes

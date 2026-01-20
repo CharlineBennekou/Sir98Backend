@@ -12,8 +12,8 @@ using Sir98Backend.Data;
 namespace Sir98Backend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20251218115715_FewerRequirementsOnInstructor")]
-    partial class FewerRequirementsOnInstructor
+    [Migration("20260119152428_Baseline")]
+    partial class Baseline
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -183,7 +183,7 @@ namespace Sir98Backend.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ActivityId")
+                    b.HasIndex("ActivityId", "OriginalStartUtc")
                         .IsUnique();
 
                     b.ToTable("ChangedActivities", (string)null);
@@ -357,9 +357,10 @@ namespace Sir98Backend.Migrations
             modelBuilder.Entity("Sir98Backend.Models.ChangedActivity", b =>
                 {
                     b.HasOne("Sir98Backend.Models.Activity", "Activity")
-                        .WithOne("ChangedActivity")
-                        .HasForeignKey("Sir98Backend.Models.ChangedActivity", "ActivityId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .WithMany("ChangedActivities")
+                        .HasForeignKey("ActivityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Activity");
                 });
@@ -368,7 +369,7 @@ namespace Sir98Backend.Migrations
                 {
                     b.Navigation("ActivitySubscriptions");
 
-                    b.Navigation("ChangedActivity");
+                    b.Navigation("ChangedActivities");
                 });
 
             modelBuilder.Entity("Sir98Backend.Models.User", b =>

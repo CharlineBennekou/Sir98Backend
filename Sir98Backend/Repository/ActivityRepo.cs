@@ -63,7 +63,7 @@ namespace Sir98Backend.Repository
        .AsNoTracking()
        .Include(a => a.Instructors)
        .Include(a => a.ActivitySubscriptions)
-       .Include(a => a.ChangedActivity)
+       .Include(a => a.ChangedActivities)
        .ToListAsync();
         /// <summary>
         /// Returns Activity by its Id including related Instructors, ActivitySubscriptions and ChangedActivity.
@@ -75,7 +75,7 @@ namespace Sir98Backend.Repository
                 .AsNoTracking()
                 .Include(a => a.Instructors)
                 .Include(a => a.ActivitySubscriptions)
-                .Include(a => a.ChangedActivity)
+                .Include(a => a.ChangedActivities)
                 .FirstOrDefaultAsync(a => a.Id == id);
 
 

@@ -79,11 +79,12 @@ namespace Sir98Backend.Data
                     .OnDelete(DeleteBehavior.Cascade);
 
                 // 0 or 1 ChangedActivity
+                // Activity 1 -> * ChangedActivities
                 builder
-                    .HasOne(a => a.ChangedActivity)
+                    .HasMany(a => a.ChangedActivities)
                     .WithOne(ca => ca.Activity)
-                    .HasForeignKey<ChangedActivity>(ca => ca.ActivityId)
-                    .IsRequired(false);
+                    .HasForeignKey(ca => ca.ActivityId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             // -------- ActivitySubscription --------
@@ -167,6 +168,10 @@ namespace Sir98Backend.Data
 
                 builder.HasKey(ca => ca.Id);
 
+                // Ensure one change per (ActivityId, OriginalStartUtc)
+                builder.HasIndex(ca => new { ca.ActivityId, ca.OriginalStartUtc }).IsUnique();
+
+
                 builder.Property(ca => ca.ActivityId)
                        .IsRequired();
 
@@ -192,10 +197,10 @@ namespace Sir98Backend.Data
 
                 // For each ChangedActivity: exactly 1 Activity
                 builder
-                    .HasOne(ca => ca.Activity)
-                    .WithOne(a => a.ChangedActivity)
-                    .HasForeignKey<ChangedActivity>(ca => ca.ActivityId)
-                    .OnDelete(DeleteBehavior.Cascade);
+              .HasOne(ca => ca.Activity)
+              .WithMany(a => a.ChangedActivities)
+              .HasForeignKey(ca => ca.ActivityId)
+              .OnDelete(DeleteBehavior.Cascade);
             });
 
             // -------- UserAwaitActivation --------
