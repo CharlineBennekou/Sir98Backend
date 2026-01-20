@@ -44,11 +44,13 @@ namespace Sir98Backend.Controllers
             const string genericResponse = "If the email is eligible, an activation email has been sent.";
 
             if (registration.Password != registration.PasswordRepeated)
-                return Ok(genericResponse);
+            {
+                return BadRequest("Password does not match repeated password");
+            }
+                
 
             // We do NOT check "does user exist" here anymore (that leaks).
             string activationToken = _tokenService.GenerateActivationToken();
-
             try
             {
                 await _userService.RegisterUserAsync(registration, activationToken);
@@ -65,12 +67,8 @@ namespace Sir98Backend.Controllers
             }
             catch(Exception e)
             {
-                Console.WriteLine(e);
                 return StatusCode(500, e.Message);
-                // Intentionally swallow details: still return generic response
-                // (You should log the exception internally)
             }
-
             return Ok(genericResponse);
         }
 
@@ -97,7 +95,7 @@ namespace Sir98Backend.Controllers
 
         [HttpGet("Activate/code={code}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> ActivationLink(string code)
         {
             try
@@ -107,7 +105,7 @@ namespace Sir98Backend.Controllers
             }
             catch
             {
-                return BadRequest("Invalid or expired activation code.");
+                return Unauthorized("Invalid or expired activation code.");
             }
         }
 
