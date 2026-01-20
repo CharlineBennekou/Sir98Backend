@@ -35,7 +35,8 @@ namespace Sir98Backend.Models
         public ICollection<ActivitySubscription> ActivitySubscriptions { get; set; } = new List<ActivitySubscription>();
 
         // Changes / history of this activity
-        public ChangedActivity? ChangedActivity { get; set; }
+        public ICollection<ChangedActivity> ChangedActivities { get; set; } = new List<ChangedActivity>();
+
 
 
 

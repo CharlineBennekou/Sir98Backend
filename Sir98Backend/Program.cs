@@ -35,13 +35,15 @@ builder.Services.AddScoped<InstructorRepo>();
 //services
 builder.Services.AddScoped<ActivityOccurrenceService>();
 builder.Services.AddScoped<ActivityService>();
-builder.Services.AddSingleton<ActivityNotificationPayloadBuilder>();
 builder.Services.AddScoped<IPushSubscriptionService, PushSubscriptionService>();
 builder.Services.AddScoped<IPushSender, PushSender>();
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddSingleton<EmailService>();
 builder.Services.AddSingleton<TokenService>();
+builder.Services.AddScoped<ActivityNotificationPayloadBuilder>();
+builder.Services.AddSingleton<IDateTimeFormatter, DateTimeFormatter>();
+builder.Services.AddScoped<IOccurrenceSnapshotResolver, OccurrenceSnapshotResolver>();
 
 
 
@@ -114,7 +116,7 @@ builder.Services.AddRateLimiter(options =>
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-    //options.UseSqlServer(builder.Configuration.GetConnectionString("CharlineConnection")));
+   // options.UseSqlServer(builder.Configuration.GetConnectionString("CharlineConnection")));
 
 builder.Services.AddSwaggerGen();
 

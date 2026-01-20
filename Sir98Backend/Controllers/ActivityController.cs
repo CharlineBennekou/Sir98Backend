@@ -38,7 +38,7 @@ namespace Sir98Backend.Controllers
        .AsNoTracking()
        .Include(a => a.Instructors)
        .Include(a => a.ActivitySubscriptions)
-       .Include(a => a.ChangedActivity)
+       .Include(a => a.ChangedActivities)
        .ToListAsync();
             return Ok(activities);
         }
