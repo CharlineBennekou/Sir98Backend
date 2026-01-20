@@ -2,7 +2,7 @@
 {
     public class EditOccurrenceDto
     {
-        public int ActivityId { get; set; }
+        public int Id { get; set; }
         public DateTimeOffset OriginalStartUtc { get; set; }
 
         public DateTimeOffset StartUtc { get; set; }
