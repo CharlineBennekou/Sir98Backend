@@ -92,11 +92,9 @@ namespace Sir98Backend.Services
             {
                 if (!activity.IsRecurring) //If activity is not recurring
                 {
-                    // Single event
-                    if (activity.StartUtc >= fromUtc && activity.StartUtc < toUtc) //If the activity's Start is within the range from parameters, run it through helper method
-                    {
+                
                         AddOccurrence(activity, activity.StartUtc, activity.EndUtc, changeLookup, result);
-                    }
+                    
 
                     continue;
                 }

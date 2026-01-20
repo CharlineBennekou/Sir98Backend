@@ -64,21 +64,6 @@ namespace Sir98Backend.Controllers
 
 
         }
-
-        [HttpGet("future")]
-        public async Task<ActionResult<IEnumerable<ActivityOccurrenceDto>>> GetFuture(
-            [FromQuery] DateTimeOffset? fromUtc = null)
-
-        {
-            var start = (fromUtc ?? DateTimeOffset.UtcNow).ToUniversalTime();
-
-            const int daysForward = 730;
-            var occurrences = await _service.GetOccurrencesAsync(
-                start, daysForward, 
-                null, null);
-
-            return Ok(occurrences);
-        }
        
 
 
