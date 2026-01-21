@@ -196,6 +196,7 @@ namespace Sir98Backend.Services
             List<InstructorDto> instructorDtos = (instructors ?? Enumerable.Empty<Instructor>())
                 .Select(i => new InstructorDto
                 {
+                    Id = i.Id,
                     FirstName = i.FirstName,
                     Email = i.Email,
                     Number = i.Number,
