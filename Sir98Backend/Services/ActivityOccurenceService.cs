@@ -38,26 +38,37 @@ namespace Sir98Backend.Services
         /// <param name="fromUtc"></param> StartTime in UTC. Used so we can "get the next page" starting from right after the last StartTime shown
         /// <param name="days"></param> Amount of days forward we will get. For example 7 days forward means we will get from StartTime until 7 days later
         /// <returns></returns>
-        public async Task<IEnumerable<ActivityOccurrenceDto>> GetOccurrencesAsync(DateTimeOffset fromUtc, int days, string filter, string userId)
+        public async Task<IEnumerable<ActivityOccurrenceDto>> GetOccurrencesAsync(
+    DateTimeOffset fromUtc,
+    int days,
+    string filter,
+    string userId)
         {
-            var toUtc = fromUtc.AddDays(days); //Calculates the EndDate based on how many days from the parameter
+            // NOW in UTC
+            var nowUtc = DateTimeOffset.UtcNow;
 
-            IEnumerable<Activity> activities = await _activityRepo.GetAllInclInstructorsAsync(); //Gets all activities from repo
+            // Calculates the EndDate based on how many days from now
+            // This defines how far into the future we fetch activities
+            var toUtc = nowUtc.AddDays(days);
+
+            // Gets all activities from repo including instructors
+            IEnumerable<Activity> activities =
+                await _activityRepo.GetAllInclInstructorsAsync();
 
             bool filteredByMine = false;
-
-            
 
             if (!string.IsNullOrWhiteSpace(filter))
             {
                 string normalizedFilter = filter.Trim().ToLower();
 
-                // if filter is "mine" and userId is provided, return only subscribed activities(subscribed to series or to an occurrence in the serie)
+                // if filter is "mine" and userId is provided,
+                // return only subscribed activities (series or single occurrences)
                 if (normalizedFilter == "mine" && userId != null)
                 {
                     filteredByMine = true;
 
-                    var subscribedActivityIds = (await _activitySubsRepo.GetByUserIdAsync(userId))
+                    var subscribedActivityIds =
+                        (await _activitySubsRepo.GetByUserIdAsync(userId))
                         .Select(s => s.ActivityId)
                         .ToHashSet();
 
@@ -69,16 +80,14 @@ namespace Sir98Backend.Services
                 {
                     // filter by tags containing the filter string
                     activities = activities
-                      .Where(a =>
-                       !string.IsNullOrWhiteSpace(a.Tag) &&
-                       a.Tag.ToLower().Contains(normalizedFilter))
-                      .ToList();
+                        .Where(a =>
+                            !string.IsNullOrWhiteSpace(a.Tag) &&
+                            a.Tag.ToLower().Contains(normalizedFilter))
+                        .ToList();
                 }
             }
 
-
-
-
+            // Fetch all ChangedActivities including instructors
             var changes = await _changedActivityRepo.GetAllInclInstructorsAsync();
 
             // (ActivityId, OriginalStartUtc) -> ChangedActivity
@@ -86,48 +95,75 @@ namespace Sir98Backend.Services
                 .GroupBy(c => (c.ActivityId, c.OriginalStartUtc))
                 .ToDictionary(g => g.Key, g => g.First());
 
-            var result = new List<ActivityOccurrenceDto>(); //Will contain all activities(including the recurrences) after ChangedActivities has been applied
+            // Will contain all activities (including the recurrences)
+            // after ChangedActivities have been applied
+            var result = new List<ActivityOccurrenceDto>();
 
             foreach (var activity in activities)
             {
-                if (!activity.IsRecurring) //If activity is not recurring
+                if (!activity.IsRecurring) // If activity is not recurring
                 {
-                    // Single event
-                    if (activity.StartUtc >= fromUtc && activity.StartUtc < toUtc) //If the activity's Start is within the range from parameters, run it through helper method
+                    // Single event:
+                    // Activity is shown until its EndUtc has passed
+                    // (so it disappears when it is finished)
+                    if (activity.StartUtc < toUtc && activity.EndUtc > nowUtc)
                     {
-                        AddOccurrence(activity, activity.StartUtc, activity.EndUtc, changeLookup, result);
+                        AddOccurrence(
+                            activity,
+                            activity.StartUtc,
+                            activity.EndUtc,
+                            changeLookup,
+                            result);
                     }
 
                     continue;
                 }
 
-                if (string.IsNullOrWhiteSpace(activity.Rrule)) //Rrule should never be null on a recurring activity. Will be skipped to avoid crashes.
+                // Rrule should never be null on a recurring activity.
+                // Will be skipped to avoid crashes.
+                if (string.IsNullOrWhiteSpace(activity.Rrule))
                     continue;
-                
 
-                // For every Activity, generate its recurrences. For every activity and recurrence, check if theres a ChangedActivity and convert it to the Dto.
+                // For every Activity, generate its recurrences.
+                // Uses now as lower bound to include occurrences that are still ongoing
                 foreach (var (originalStartUtc, originalEndUtc) in
-                         GenerateBaseOccurrences(activity, fromUtc, toUtc))
+                         GenerateBaseOccurrences(activity, nowUtc, toUtc))
                 {
-                    AddOccurrence(activity, originalStartUtc, originalEndUtc, changeLookup, result);
+                    // Skip occurrences that have already ended
+                    if (originalEndUtc <= nowUtc)
+                        continue;
+
+                    AddOccurrence(
+                        activity,
+                        originalStartUtc,
+                        originalEndUtc,
+                        changeLookup,
+                        result);
                 }
             }
+
+            // If userId is provided, mark subscribed occurrences
             if (userId != null)
             {
                 await SetToSubscribed(result, userId);
             }
+
+            // If filter is "mine", only keep subscribed occurrences
             if (filter == "mine")
             {
-                result = result 
+                result = result
                     .Where(o => o.IsSubscribed)
                     .ToList();
             }
 
-
+            // Return ordered list of occurrences by StartUtc
             return result
                 .OrderBy(o => o.StartUtc)
                 .ToList();
         }
+
+
+
 
         /// <summary>
         /// Uses Ical.Net to expand the RRULE of a single Activity into UTC occurrences.
