@@ -121,14 +121,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
-
-//Deletes and recreates database on startup. remove later.
-//using (var scope = app.Services.CreateScope())
-//{
-//    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-//    db.Database.EnsureDeleted();
-//    db.Database.EnsureCreated();
-//}
+app.UseCors("AllowAll"); //DONT FORGET THIS LATER
+app.UseAuthentication();
 
 
 await DbSeeder.SeedAsync(app); //Seed the database
@@ -159,13 +153,12 @@ app.Use(async (context, next) =>
     await next();
 });
 
-
+app.UseCors("AllowAll"); //DONT FORGET THIS LATER
 
 app.UseAuthorization();
 
 app.UseRateLimiter();
 
-app.UseCors("AllowAll"); //DONT FORGET THIS LATER
 
 app.MapControllers();
 
