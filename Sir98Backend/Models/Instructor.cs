@@ -12,6 +12,7 @@ public class Instructor
 
         public string? Number { get; set; }
 
+        [Required]
         public string FirstName { get; set; }
 
         public string? Image { get; set; }

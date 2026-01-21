@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Sir98Backend.Models;
 using Sir98Backend.Repository;
 
@@ -6,6 +7,7 @@ namespace Sir98Backend.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Roles="Instructor")]
     public class InstructorController : ControllerBase
     {
         private readonly InstructorRepo _instructorRepo;
@@ -17,6 +19,7 @@ namespace Sir98Backend.Controllers
 
         // GET: api/Instructor
         [HttpGet]
+        [AllowAnonymous]
         public async Task<ActionResult<IEnumerable<Instructor>>> GetAll()
         {
             var instructors = await _instructorRepo.GetAllAsync();
@@ -25,6 +28,7 @@ namespace Sir98Backend.Controllers
 
         // GET: api/Instructor/5
         [HttpGet("{id}")]
+        [AllowAnonymous]
         public async Task<ActionResult<Instructor>> GetById(int id)
         {
             var instructor = await _instructorRepo.GetByIdAsync(id);

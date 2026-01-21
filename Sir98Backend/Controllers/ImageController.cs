@@ -1,10 +1,12 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using System.IO;
 using static System.Net.Mime.MediaTypeNames;
 
 namespace Sir98Backend.Controllers
 {
     [Route("api/[controller]")]
+    [Authorize(Roles = "Instructor")]
     public class ImageController : Controller
     {
         private readonly Dictionary<string, string> _extensionAndContentType = new() {
@@ -27,6 +29,7 @@ namespace Sir98Backend.Controllers
         /// <param name="image">Must be filename and extension like this: Mette.jpg</param>
         /// <returns></returns>
         [HttpGet("{image}")]
+        [AllowAnonymous]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status415UnsupportedMediaType)]

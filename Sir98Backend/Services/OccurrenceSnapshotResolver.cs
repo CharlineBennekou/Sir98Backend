@@ -24,51 +24,25 @@ namespace Sir98Backend.Services
 
             var change = await _changedRepo.GetByActivityAndOriginalStartAsync(activityId, originalStartUtc);
 
-            // Base values come from activity
-            var startUtc = activity.StartUtc;
-            var endUtc = activity.EndUtc;
-            var title = activity.Title;
-            var description = activity.Description;
-            var address = activity.Address;
-            var tag = activity.Tag;
-            var instructorIds = activity.Instructors
-                .Select(i => i.Id)
-                .ToList();
-
-            var isCancelled = activity.Cancelled;
-
-            // Apply overrides if we have a change
-            if (change != null)
-            {
-                isCancelled = change.IsCancelled;
-
-                startUtc = change.NewStartUtc ?? startUtc;
-                endUtc = change.NewEndUtc ?? endUtc;
-                title = change.NewTitle ?? title;
-                description = change.NewDescription ?? description;
-                address = change.NewAddress ?? address;
-                tag = change.NewTag ?? tag;
-                if (change.NewInstructors != null && change.NewInstructors.Count > 0)
-                {
-                    instructorIds = change.NewInstructors
-                        .Select(i => i.Id)
-                        .ToList();
-                }
-            }
+            var instructorIds =
+                (change?.NewInstructors is { Count: > 0 })
+                    ? change.NewInstructors.Select(i => i.Id).ToList()
+                    : activity.Instructors.Select(i => i.Id).ToList();
 
             return new OccurrenceSnapshot(
                 activityId: activity.Id,
                 originalStartUtc: originalStartUtc,
-                isCancelled: isCancelled,
-                startUtc: startUtc,
-                endUtc: endUtc,
-                title: title,
-                description: description,
-                address: address,
+                isCancelled: change?.IsCancelled ?? activity.Cancelled,
+                startUtc: change?.NewStartUtc ?? activity.StartUtc,
+                endUtc: change?.NewEndUtc ?? activity.EndUtc,
+                title: change?.NewTitle ?? activity.Title,
+                description: change?.NewDescription ?? activity.Description,
+                address: change?.NewAddress ?? activity.Address,
                 instructorIds: instructorIds,
-                tag: tag
+                tag: change?.NewTag ?? activity.Tag
             );
         }
+
 
     }
 

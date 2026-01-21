@@ -71,20 +71,6 @@ namespace Sir98Backend.Services
 
 
 
-        // ---- New methods: update/delete + notify ----
-
-        //public async Task<Activity?> PutAndNotifyAsync(int id, Activity activity)
-        //{
-        //    var updated = await _activityRepo.UpdateAsync(id, activity);
-        //    if (updated == null)
-        //        return null;
-
-        //    var payload = _payloadBuilder.BuildSeriesChange(updated);
-
-        //    await _notificationService.NotifyUsersAboutSeriesChangeAsync(updated.Id, payload);
-
-        //    return updated;
-        //}
         public async Task<Activity?> PutAndNotifyAsync(int id, Activity activity)
         {
             //Load from database so we have a before
@@ -100,8 +86,10 @@ namespace Sir98Backend.Services
 
             //Save the after
             OccurrenceSnapshot afterUpdate = await MapToOccurrenceSnapshot(activity);
-            //It is a series if tag = Series. Otherwise it's a one time event.
+
+            //This boolean is used to change phrasing in the notification payload. If the tag is "Træning", we consider it an update to a series. If the tag is "begivenhed", it is a single event.
             bool IsSeries = updated.Tag == "Træning";
+
             var payload = _payloadBuilder.BuildUpdatePayload(beforeUpdate, afterUpdate, IsSeries);
 
             await _notificationService.NotifyUsersAboutSeriesChangeAsync(updated.Id, payload);

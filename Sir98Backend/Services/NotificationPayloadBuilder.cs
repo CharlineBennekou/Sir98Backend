@@ -44,6 +44,12 @@ namespace Sir98Backend.Services
         public string BuildBody(OccurrenceSnapshot before, OccurrenceSnapshot after, bool isSeries)
         {
             var changes = new List<string>();
+
+            if (after.IsCancelled)
+            {
+                changes.Add("Denne aktivitet er aflyst.");
+                return string.Join("\n", changes);
+            }
             //Title
             if (!string.Equals(before.Title, after.Title, StringComparison.Ordinal))
             {
