@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Sir98Backend.Interfaces;
 using Sir98Backend.Models;
 using Sir98Backend.Models.DataTransferObjects;
@@ -18,9 +17,9 @@ namespace Sir98Backend.Controllers
         private readonly NotificationService _notificationService;
         private readonly InstructorRepo _instructorRepo;
 
-        public ChangedActivityController( ActivityRepo activityRepo, ChangedActivityRepo changedActivityRepo, IOccurrenceSnapshotResolver occurrenceResolver, NotificationService notificationService, ActivityNotificationPayloadBuilder payloadBuilder, InstructorRepo instructoRepo)
+        public ChangedActivityController(ActivityRepo activityRepo, ChangedActivityRepo changedActivityRepo, IOccurrenceSnapshotResolver occurrenceResolver, NotificationService notificationService, ActivityNotificationPayloadBuilder payloadBuilder, InstructorRepo instructoRepo)
         {
-           
+
             _activityRepo = activityRepo;
             _changedActivityRepo = changedActivityRepo;
             _occurrenceResolver = occurrenceResolver;

@@ -5,15 +5,15 @@ namespace Sir98Backend.Models.DataTransferObjects
     public class PushSubscriptionDto
     {
         [Required]
-        public string UserId { get; set; }   // Email (temporary)
+        public required string UserId { get; set; }   // Email (temporary)
 
         [Required]
-        public string Endpoint { get; set; }
+        public required string Endpoint { get; set; }
 
         [Required]
-        public string P256dh { get; set; }
+        public required string P256dh { get; set; }
 
         [Required]
-        public string Auth { get; set; }
+        public required string Auth { get; set; }
     }
 }

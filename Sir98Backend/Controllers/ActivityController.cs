@@ -1,11 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Sir98Backend.Models;
-using Sir98Backend.Repository;
-using Sir98Backend.Data;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Sir98Backend.Services;
+using Sir98Backend.Data;
+using Sir98Backend.Models;
 using Sir98Backend.Models.DataTransferObjects;
-using Microsoft.AspNetCore.Authorization;
+using Sir98Backend.Repository;
+using Sir98Backend.Services;
 
 namespace Sir98Backend.Controllers
 {
@@ -100,12 +100,13 @@ namespace Sir98Backend.Controllers
             try
             {
                 mappedActivity = await MapActivityDTO(activity);
-            } catch(Exception e)
+            }
+            catch (Exception e)
             {
                 return BadRequest(e.Message);
             }
 
-            var updated = await _activityRepo.UpdateAsync(id,mappedActivity);
+            var updated = await _activityRepo.UpdateAsync(id, mappedActivity);
             if (updated == null)
                 return NotFound();
 
@@ -120,7 +121,7 @@ namespace Sir98Backend.Controllers
             {
                 instructors.Add(availableInstructors.FirstOrDefault((instructor) => instructor.Id == instructorID));
             }
-            if(activity.StartUtc.ToUnixTimeMilliseconds() >= activity.EndUtc.ToUnixTimeMilliseconds())
+            if (activity.StartUtc.ToUnixTimeMilliseconds() >= activity.EndUtc.ToUnixTimeMilliseconds())
             {
                 throw new Exception("Start must be before end");
             }

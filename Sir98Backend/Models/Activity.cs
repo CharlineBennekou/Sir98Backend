@@ -1,18 +1,16 @@
-﻿using System.ComponentModel.DataAnnotations;
-
-namespace Sir98Backend.Models
+﻿namespace Sir98Backend.Models
 {
     public class Activity
     {
         public int Id { get; set; }
-        public string Title { get; set; }
-        
+        public required string Title { get; set; }
+
         public DateTimeOffset StartUtc { get; set; } //Important to store in UTC, we convert to local time later on frontend
 
 
         public DateTimeOffset EndUtc { get; set; }
 
-        public string Address { get; set; }
+        public required string Address { get; set; }
 
         public bool Cancelled { get; set; }
 

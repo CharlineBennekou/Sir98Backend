@@ -7,7 +7,7 @@ namespace Sir98Backend.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles="Instructor")]
+    [Authorize(Roles = "Instructor")]
     public class InstructorController : ControllerBase
     {
         private readonly InstructorRepo _instructorRepo;

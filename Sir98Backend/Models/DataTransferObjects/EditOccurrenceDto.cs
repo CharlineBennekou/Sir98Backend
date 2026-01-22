@@ -8,7 +8,7 @@
         public DateTimeOffset StartUtc { get; set; }
         public DateTimeOffset EndUtc { get; set; }
 
-        public string Title { get; set; }
+        public required string Title { get; set; }
         public string? Description { get; set; }
         public string? Address { get; set; }
 

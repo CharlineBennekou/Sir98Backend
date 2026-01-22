@@ -1,6 +1,4 @@
-﻿using Sir98Backend.Models;
-
-namespace Sir98Backend.Models.DataTransferObjects
+﻿namespace Sir98Backend.Models.DataTransferObjects
 {
     public class ActivityOccurrenceDto
     {
@@ -21,9 +19,9 @@ namespace Sir98Backend.Models.DataTransferObjects
         public DateTimeOffset EndUtc { get; set; }
 
         public string Title { get; set; } = "";
-        public string Address { get; set; }
-        public string? Image { get; set; } 
-        public string? Link { get; set; } 
+        public required string Address { get; set; }
+        public string? Image { get; set; }
+        public string? Link { get; set; }
         public string? Description { get; set; }
         public List<InstructorDto>? Instructors { get; set; }
 

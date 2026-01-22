@@ -1,7 +1,6 @@
-﻿using Sir98Backend.Models;
-using System.Xml.Linq;
+﻿using Microsoft.EntityFrameworkCore;
 using Sir98Backend.Data;
-using Microsoft.EntityFrameworkCore;
+using Sir98Backend.Models;
 
 namespace Sir98Backend.Repository
 {
@@ -121,7 +120,7 @@ namespace Sir98Backend.Repository
 
             //remove previous instructors and add the new ones
             existing.Instructors.Clear();
-            foreach(var instructor in activity.Instructors)
+            foreach (var instructor in activity.Instructors)
             {
                 existing.Instructors.Add(instructor);
             }

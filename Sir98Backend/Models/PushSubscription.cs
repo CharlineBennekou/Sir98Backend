@@ -11,20 +11,20 @@ namespace Sir98Backend.Models
         public int Id { get; set; }
 
         [Required]
-        public string UserId { get; set; }
+        public required string UserId { get; set; }
 
         /// <summary>
         /// Unique endpoint URL provided by the browser push service.
         /// This is the best unique identifier for a subscription.
         /// </summary>
         [Required]
-        public string Endpoint { get; set; }
+        public required string Endpoint { get; set; }
 
         [Required]
-        public string P256dh { get; set; }
+        public required string P256dh { get; set; }
 
         [Required]
-        public string Auth { get; set; }
+        public required string Auth { get; set; }
 
         /// <summary>
         /// When this subscription was first created (stored).

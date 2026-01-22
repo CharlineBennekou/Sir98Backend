@@ -14,7 +14,7 @@ namespace Sir98Backend.Services
             var token = Guid.NewGuid();
             string hashedToken = Argon2.Hash(token.ToString());
             string onlyHashedToken = hashedToken.Substring(29);
-            string onlyHashedTokenWithoutPlus = onlyHashedToken.Replace("+", "").Replace("/","");
+            string onlyHashedTokenWithoutPlus = onlyHashedToken.Replace("+", "").Replace("/", "");
             return onlyHashedTokenWithoutPlus;
         }
 

@@ -1,9 +1,6 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
-using Sir98Backend.Controllers;
 using Sir98Backend.Data;
 using Sir98Backend.Interfaces;
 using Sir98Backend.Models;
@@ -86,7 +83,7 @@ builder.Services.AddRateLimiter(options =>
 {
     //structure taken from https://stackoverflow.com/questions/76309904/net-7-rate-limiting-rate-limit-by-ip
 
-    options.AddPolicy("userLoginRegisterForgot", 
+    options.AddPolicy("userLoginRegisterForgot",
         httpContext => RateLimitPartition.GetTokenBucketLimiter(
             partitionKey: httpContext.Request.Path.ToString() + httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
             factory: partition => new()
@@ -116,7 +113,7 @@ builder.Services.AddRateLimiter(options =>
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-   // options.UseSqlServer(builder.Configuration.GetConnectionString("CharlineConnection")));
+// options.UseSqlServer(builder.Configuration.GetConnectionString("CharlineConnection")));
 
 builder.Services.AddSwaggerGen();
 
@@ -137,8 +134,8 @@ app.UseHttpsRedirection();
 app.Use(async (context, next) =>
 {
     Console.WriteLine(context.Connection.RemoteIpAddress);
-    context.Response.Headers.Add("X-Content-Type-Options", "nosniff");
-    context.Response.Headers.Add("Content-Security-Policy", "default-src 'none';" +
+    context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
+    context.Response.Headers.Append("Content-Security-Policy", "default-src 'none';" +
                                                             "img-src 'self';" +
                                                             "style-src 'self' https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css;" +
                                                             "script-src 'self';" +
@@ -148,8 +145,8 @@ app.Use(async (context, next) =>
                                                             "frame-ancestors 'none';" +
                                                             "upgrade-insecure-requests;" +
                                                             "base-uri 'self';");
-    context.Response.Headers.Add("Strict-Transport-Security", "max-age=15724800; includeSubdomains; preload;");
-    context.Response.Headers.Add("Cache-Control", "no-cache");
+    context.Response.Headers.Append("Strict-Transport-Security", "max-age=15724800; includeSubdomains; preload;");
+    context.Response.Headers.Append("Cache-Control", "no-cache");
     await next();
 });
 
