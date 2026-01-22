@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.Configuration;
-using System.Net.Mail;
+﻿using System.Net.Mail;
 
 namespace Sir98Backend.Services
 {

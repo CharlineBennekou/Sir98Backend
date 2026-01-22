@@ -1,15 +1,10 @@
 ﻿using Isopoh.Cryptography.Argon2;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
-using Microsoft.IdentityModel.Tokens;
 using Sir98Backend.Interfaces;
-using Sir98Backend.Models;
 using Sir98Backend.Models.DataTransferObjects;
 using Sir98Backend.Services;
-using System.IdentityModel.Tokens.Jwt;
 using System.Net.Mail;
-using System.Security.Claims;
-using System.Text;
 
 namespace Sir98Backend.Controllers
 {
@@ -47,7 +42,7 @@ namespace Sir98Backend.Controllers
             {
                 return BadRequest("Password does not match repeated password");
             }
-                
+
 
             // We do NOT check "does user exist" here anymore (that leaks).
             string activationToken = _tokenService.GenerateActivationToken();
@@ -65,7 +60,7 @@ namespace Sir98Backend.Controllers
                 );
                 _emailService.Send(msg);
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 return StatusCode(500, e.Message);
             }

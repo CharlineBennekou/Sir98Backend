@@ -1,7 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Sir98Backend.Data;
 using Sir98Backend.Models;
-using Sir98Backend.Interfaces;
 using Sir98Backend.Models.DataTransferObjects;
 
 namespace Sir98Backend.Repository

@@ -1,7 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.IO;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace Sir98Backend.Controllers
 {
@@ -21,7 +19,7 @@ namespace Sir98Backend.Controllers
             { ".avif", "image/avif" }
         };
         private readonly string _imageDirectory = Path.Join(Environment.CurrentDirectory, "Images");
-        
+
 
         /// <summary>
         /// Controller for requesting images
@@ -73,7 +71,7 @@ namespace Sir98Backend.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status415UnsupportedMediaType)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public IActionResult Post([FromForm]IEnumerable<IFormFile> images)
+        public IActionResult Post([FromForm] IEnumerable<IFormFile> images)
         {
             foreach (var key in Request.Form)
             {
@@ -83,7 +81,7 @@ namespace Sir98Backend.Controllers
             {
                 return BadRequest("Missing image in the request");
             }
-            if(images.Count() > 1)
+            if (images.Count() > 1)
             {
                 return BadRequest("Too many images");
             }
@@ -94,21 +92,21 @@ namespace Sir98Backend.Controllers
             }
             var parts = image.FileName.Split(".");
             var fileExtension = $".{parts.Last()}";
-            if(
-                _extensionAndContentType.ContainsKey(fileExtension) == false || 
+            if (
+                _extensionAndContentType.ContainsKey(fileExtension) == false ||
                 _extensionAndContentType[fileExtension] != image.ContentType
                 )
             {
                 return StatusCode(415, "The uploaded file type is not supported");
             }
 
-            if(Directory.Exists(_imageDirectory) == false)
+            if (Directory.Exists(_imageDirectory) == false)
             {
                 Directory.CreateDirectory(_imageDirectory);
             }
             string newFileName = Guid.NewGuid().ToString();
             string imagePath = Path.Join(_imageDirectory, $"{newFileName}{fileExtension}");
-            if(System.IO.File.Exists(imagePath))
+            if (System.IO.File.Exists(imagePath))
             {
                 return StatusCode(500, "No space for new image, too many images on server");
             }
@@ -116,7 +114,7 @@ namespace Sir98Backend.Controllers
             {
                 image.CopyTo(fileStream);
             }
-            
+
             return Ok($"{newFileName}{fileExtension}");
         }
     }

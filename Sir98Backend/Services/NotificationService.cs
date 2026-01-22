@@ -27,7 +27,7 @@ namespace Sir98Backend.Services
         public async Task NotifyUsersAboutSeriesChangeAsync(int activityId, NotificationPayload payload)
         {
             List<string> userIds = (await GetUserIdsForSeriesChangeAsync(activityId)).ToList();
-            foreach(var email in userIds)
+            foreach (var email in userIds)
             {
                 Console.WriteLine(email);
             }
@@ -43,7 +43,7 @@ namespace Sir98Backend.Services
         /// Notify users subscribed to ALL occurrences OR the specific occurrence.
         /// Use when a ChangedActivity (single occurrence override) is updated.
         /// </summary>
-        public async Task NotifyUsersAboutOccurrenceChangeAsync(int activityId,DateTimeOffset originalStartUtc,NotificationPayload payload)
+        public async Task NotifyUsersAboutOccurrenceChangeAsync(int activityId, DateTimeOffset originalStartUtc, NotificationPayload payload)
         {
             var userIds = await GetUserIdsForOccurrenceChangeAsync(activityId, originalStartUtc);
             if (!userIds.Any()) return;
@@ -106,7 +106,8 @@ namespace Sir98Backend.Services
                 .AsNoTracking()
                 .Where(ps => userIds.Contains(ps.UserId))
                 .ToListAsync();
-            } catch(Exception e)
+            }
+            catch (Exception e)
             {
                 Console.WriteLine(e);
                 return new List<PushSubscription>();
@@ -118,7 +119,7 @@ namespace Sir98Backend.Services
         /// <param name="pushSubscriptions"></param>
         /// <param name="payload"></param>
         /// <returns></returns>
-        private async Task SendMessageToPushSubscriptionsAsync(List<PushSubscription> pushSubscriptions,NotificationPayload payload)
+        private async Task SendMessageToPushSubscriptionsAsync(List<PushSubscription> pushSubscriptions, NotificationPayload payload)
         {
             var result = await _pushSender.SendAsync(
                 subscriptions: pushSubscriptions, // List<T> works as IReadOnlyCollection<T>

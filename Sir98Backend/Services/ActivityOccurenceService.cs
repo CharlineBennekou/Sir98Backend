@@ -1,15 +1,9 @@
 ﻿using Ical.Net;
 using Ical.Net.CalendarComponents;
 using Ical.Net.DataTypes;
-using Ical.Net.Evaluation;
-using Microsoft.AspNetCore.Components;
-using Org.BouncyCastle.Bcpg;
-using Org.BouncyCastle.Security;
-using Sir98Backend.Interfaces;
 using Sir98Backend.Models;
 using Sir98Backend.Models.DataTransferObjects;
 using Sir98Backend.Repository;
-using System.Linq;
 
 namespace Sir98Backend.Services
 {
@@ -44,9 +38,7 @@ namespace Sir98Backend.Services
 
             IEnumerable<Activity> activities = await _activityRepo.GetAllInclInstructorsAsync(); //Gets all activities from repo
 
-            bool filteredByMine = false;
 
-            
 
             if (!string.IsNullOrWhiteSpace(filter))
             {
@@ -55,8 +47,6 @@ namespace Sir98Backend.Services
                 // if filter is "mine" and userId is provided, return only subscribed activities(subscribed to series or to an occurrence in the serie)
                 if (normalizedFilter == "mine" && userId != null)
                 {
-                    filteredByMine = true;
-
                     var subscribedActivityIds = (await _activitySubsRepo.GetByUserIdAsync(userId))
                         .Select(s => s.ActivityId)
                         .ToHashSet();
@@ -92,16 +82,16 @@ namespace Sir98Backend.Services
             {
                 if (!activity.IsRecurring) //If activity is not recurring
                 {
-                
-                        AddOccurrence(activity, activity.StartUtc, activity.EndUtc, changeLookup, result);
-                    
+
+                    AddOccurrence(activity, activity.StartUtc, activity.EndUtc, changeLookup, result);
+
 
                     continue;
                 }
 
                 if (string.IsNullOrWhiteSpace(activity.Rrule)) //Rrule should never be null on a recurring activity. Will be skipped to avoid crashes.
                     continue;
-                
+
 
                 // For every Activity, generate its recurrences. For every activity and recurrence, check if theres a ChangedActivity and convert it to the Dto.
                 foreach (var (originalStartUtc, originalEndUtc) in
@@ -116,7 +106,7 @@ namespace Sir98Backend.Services
             }
             if (filter == "mine")
             {
-                result = result 
+                result = result
                     .Where(o => o.IsSubscribed)
                     .ToList();
             }
@@ -192,7 +182,7 @@ namespace Sir98Backend.Services
             string? address = hasChange ? (change!.NewAddress ?? activity.Address) : activity.Address;
             string? tag = hasChange ? (change!.NewTag ?? activity.Tag) : activity.Tag;
 
-            IEnumerable<Instructor>? instructors = hasChange? (change!.NewInstructors ?? activity.Instructors): activity.Instructors;
+            IEnumerable<Instructor>? instructors = hasChange ? (change!.NewInstructors ?? activity.Instructors) : activity.Instructors;
             List<InstructorDto> instructorDtos = (instructors ?? Enumerable.Empty<Instructor>())
                 .Select(i => new InstructorDto
                 {
@@ -240,7 +230,7 @@ namespace Sir98Backend.Services
             foreach (ActivityOccurrenceDto occurrence in result)
             {
                 occurrence.IsSubscribed =
-                   allOccurrenceActivityIds.Contains(occurrence.ActivityId) 
+                   allOccurrenceActivityIds.Contains(occurrence.ActivityId)
                    || singleOccurrenceKeys.Contains((occurrence.ActivityId, occurrence.OriginalStartUtc!.Value));
 
             }

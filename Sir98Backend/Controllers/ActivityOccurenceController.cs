@@ -46,12 +46,13 @@ namespace Sir98Backend.Controllers
             try
             {
                 occurrences = await _service.GetOccurrencesAsync(fromUtc, days, filter, userId);
-            } catch(Exception e)
+            }
+            catch (Exception e)
             {
                 Console.WriteLine("SKETE EN FEJL HER");
                 Console.WriteLine(e);
             }
             return Ok(occurrences);
         }
-    }   
+    }
 }
