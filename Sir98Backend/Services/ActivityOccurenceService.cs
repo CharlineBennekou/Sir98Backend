@@ -207,7 +207,9 @@ namespace Sir98Backend.Services
                 Link = activity.Link,
                 Instructors = instructorDtos,
                 Tag = tag ?? "",
-                Cancelled = hasChange ? change!.IsCancelled : activity.Cancelled
+                Cancelled = hasChange ? change!.IsCancelled : activity.Cancelled,
+                IsRecurring = activity.IsRecurring
+
             });
         }
 

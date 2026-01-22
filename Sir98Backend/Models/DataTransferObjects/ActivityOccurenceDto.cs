@@ -30,6 +30,9 @@
         public bool Cancelled { get; set; }
 
         public bool IsSubscribed { get; set; }
+
+        public bool IsRecurring { get; set; }
+
     }
 
 }
