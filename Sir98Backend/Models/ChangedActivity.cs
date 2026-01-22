@@ -29,7 +29,7 @@
 
         public string? NewTag { get; set; }
 
-        public required Activity Activity { get; set; }
+        public Activity? Activity { get; set; }
 
 
 
